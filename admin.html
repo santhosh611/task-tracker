@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Flower Harvest Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div id="adminLoginContainer">
+        <h2>Admin Login</h2>
+        <form id="adminLoginForm">
+            <label for="adminUsername">Username:</label>
+            <input type="text" id="adminUsername" placeholder="Enter username" required>
+            <label for="adminPassword">Password:</label>
+            <input type="password" id="adminPassword" placeholder="Enter password" required>
+            <button type="submit">Login</button>
+        </form>
+    </div>
+
+    <div id="adminDashboard" class="hidden">
+        <div id="sidebar" class="sidebar">
+            <button id="closeSidebarBtn" class="close-sidebar-btn" aria-label="Close Sidebar">&times;</button>
+            <nav>
+                <ul>
+                    <li><a href="#" data-section="dashboard" class="active">Dashboard</a></li>
+                    <li><a href="#" data-section="addWorkers">Add Workers</a></li>
+                    <li><a href="#" data-section="manageTopics">Manage Topics</a></li>
+                    <li><a href="#" data-section="adminSettings">Admin Settings</a></li>
+                    <li><a href="#" data-section="viewAllReplies">View All Replies</a></li>
+                    <li><a href="#" data-section="leaveManagement">Leave Management</a></li>
+                    <li><a href="#" data-section="manageColumns">Manage Columns</a></li>
+                </ul>
+            </nav>
+        </div>
+
+        <div id="mainContent">
+            <button id="openSidebarBtn" class="open-sidebar-btn" aria-label="Open Sidebar">
+                <i class="fas fa-bars" aria-hidden="true"></i>
+            </button>
+
+            <div id="dashboardSection" class="dashboard-section">
+                <h2>Worker Activities</h2>
+                <label for="searchWorker" class="sr-only">Search Worker</label>
+                <input type="text" id="searchWorker" placeholder="Search worker...">
+                <table id="workerActivitiesTable">
+                    <thead id="workerActivitiesHead">
+                        <tr>
+                            <th>Rank</th>
+                            <th>Photo</th>
+                            <th>Name</th>
+                            <th>Department</th>
+                            <th>Total Points</th>
+                            <th>Today's Activities</th>
+                            <th>Last Submission</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="workerActivitiesBody"></tbody>
+                </table>
+            </div>
+
+            <div id="addWorkersSection" class="dashboard-section hidden">
+                <h2>Add Workers</h2>
+                <form id="addWorkerForm">
+                    <label for="newWorkerName">Name:</label>
+                    <input type="text" id="newWorkerName" required>
+                    <label for="newWorkerUsername">Username:</label>
+                    <input type="text" id="newWorkerUsername" required>
+                    <label for="newWorkerPassword">Password:</label>
+                    <input type="password" id="newWorkerPassword" required>
+                    <label for="newWorkerDepartment">Department:</label>
+                    <select id="newWorkerDepartment" required>
+                        <option value="">Select Department</option>
+                    </select>
+                    <button type="button" id="addNewDepartmentBtn">Add New Department</button>
+                    <label for="newWorkerPhoto">Photo:</label>
+                    <input type="file" id="newWorkerPhoto" accept="image/*">
+                    <button type="submit">Add Worker</button>
+                </form>
+            </div>
+
+            <div id="manageTopicsSection" class="dashboard-section hidden">
+                <h2>Manage Topics</h2>
+                <div id="topicsList" class="topics-list"></div>
+                <form id="addTopicForm" class="topic-form">
+                    <div class="form-group">
+                        <label for="newTopicName">Topic Name:</label>
+                        <input type="text" id="newTopicName" placeholder="Enter topic name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="newTopicPoints">Points:</label>
+                        <input type="number" id="newTopicPoints" placeholder="Enter points" required min="0">
+                    </div>
+                    <button type="submit" class="btn-primary">Add Topic</button>
+                </form>
+            </div>
+
+            <div id="adminSettingsSection" class="dashboard-section hidden">
+                <h2>Admin Settings</h2>
+                <button id="resetAllActivitiesBtn">Reset All Worker Activities</button>
+            </div>
+
+            <div id="viewAllRepliesSection" class="dashboard-section hidden">
+                <h2>View All Replies</h2>
+                <div id="repliesList"></div>
+            </div>
+
+            <div id="leaveManagementSection" class="dashboard-section hidden">
+                <h2>Leave Management</h2>
+                <div id="leaveFilters">
+                    <label for="dateFilter">Date:</label>
+                    <input type="date" id="dateFilter">
+                    <label for="statusFilter">Status:</label>
+                    <select id="statusFilter">
+                        <option value="">All Statuses</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Approved">Approved</option>
+                        <option value="Rejected">Rejected</option>
+                    </select>
+                    <label for="departmentFilter">Department:</label>
+                    <input type="text" id="departmentFilter" placeholder="Filter by department">
+                    <button id="applyFiltersBtn">Apply Filters</button>
+                </div>
+                <table id="leaveApplicationsTable">
+                    <thead>
+                        <tr>
+                            <th>Worker Name</th>
+                            <th>Department</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaveApplicationsBody"></tbody>
+                </table>
+            </div>
+
+            <div id="manageColumnsSection" class="dashboard-section hidden">
+                <h2>Manage Columns</h2>
+                <div id="columnsList"></div>
+                <form id="addColumnForm">
+                    <label for="newColumnName">Column Name:</label>
+                    <input type="text" id="newColumnName" placeholder="New column name" required>
+                    <label for="newColumnDepartment">Department:</label>
+                    <select id="newColumnDepartment" required>
+                        <option value="all">All Departments</option>
+                    </select>
+                    <button type="submit">Add Column</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close" aria-label="Close">&times;</span>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>

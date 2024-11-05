@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Worker Dashboard - Flower Harvest Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+<body>
+    <div class="container" id="workerContainer">
+        <h1>Worker Login</h1>
+        <input type="text" id="searchWorker" placeholder="Search for a worker...">
+        <div id="workerList"></div>
+    </div>
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <span class="close" aria-label="Close">&times;</span>
+            <h2 id="loginModalTitle">Login</h2>
+            <input type="password" id="passwordInput" placeholder="Enter your password">
+            <button id="loginBtn">Login</button>
+        </div>
+    </div>
+    <div class="container" id="dashboard" hidden>
+        <div id="commentBox">
+            <i class="fas fa-comments" aria-label="Comments"></i>
+        </div>
+        <div class="profile-section">
+            <img id="profileImage" src="" alt="Profile Image">
+            <span id="editProfileIcon" role="button" aria-label="Edit profile">✏️</span>
+            <h2 id="workerName"></h2>
+            <p id="workerDepartment"></p>
+        </div>
+        <div class="leave-section">
+            <button id="applyLeaveBtn">Apply for Leave</button>
+            <button id="leaveRequestsBtn">Leave Requests <span id="leaveRequestNotification" class="notification-dot"></span></button>
+        </div>
+        <div id="harvestForm">
+            <div id="dynamicInputs"></div>
+            <div id="topicList"></div>
+            <button id="submitHarvest">Submit</button>
+        </div>
+        <div id="scoreboardSection">
+            <div id="scoreboard">
+                <h3 id="scoreboardTitle">Department Scoreboard</h3>
+                <table id="scoreTable">
+                    <thead id="scoreTableHead">
+                        <tr>
+                            <th>Rank</th>
+                            <th>Name</th>
+                            <th>Total Points</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scoreTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div id="commentModal" class="modal">
+        <div class="modal-content">
+            <span class="close" aria-label="Close">&times;</span>
+            <h2>Comments</h2>
+            <div id="commentList"></div>
+        </div>
+    </div>
+    <div id="leaveModal" class="modal">
+        <div class="modal-content">
+            <span class="close" aria-label="Close">&times;</span>
+            <h2>Leave Application Form</h2>
+            <form id="leaveApplicationForm">
+                <div class="form-group">
+                    <label for="leaveType">Leave Type:</label>
+                    <select id="leaveType" required>
+                        <option value="">Select leave type</option>
+                        <option value="Annual Leave">Annual Leave</option>
+                        <option value="Sick Leave">Sick Leave</option>
+                        <option value="Personal Leave">Personal Leave</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="startDate">Start Date:</label>
+                    <input type="date" id="startDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="endDate">End Date:</label>
+                    <input type="date" id="endDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="totalDays">Total Days:</label>
+                    <input type="number" id="totalDays" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="reason">Reason for Leave:</label>
+                    <textarea id="reason" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="attachment">Attachment (optional):</label>
+                    <input type="file" id="attachment">
+                </div>
+                <button type="submit">Submit Application</button>
+            </form>
+        </div>
+    </div>
+    <div id="leaveRequestsModal" class="modal">
+        <div class="modal-content">
+            <span class="close" aria-label="Close">&times;</span>
+            <h2>Leave Requests</h2>
+            <div id="leaveRequestsList"></div>
+        </div>
+    </div>
+    <input type="file" id="imageUpload" accept="image/*" hidden>
+    <script src="worker.js"></script>
+</body>
+</html>
