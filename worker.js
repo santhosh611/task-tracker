@@ -1,47 +1,59 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // DOM Elements
     const workerContainer = document.getElementById('workerContainer');
     const dashboard = document.getElementById('dashboard');
+    const searchInput = document.getElementById('searchWorker');
+    const workerList = document.getElementById('workerList');
     const loginModal = document.getElementById('loginModal');
     const loginModalTitle = document.getElementById('loginModalTitle');
+    const loginForm = document.getElementById('loginForm');
     const passwordInput = document.getElementById('passwordInput');
-    const loginBtn = document.getElementById('loginBtn');
-    const searchWorker = document.getElementById('searchWorker');
-    const workerList = document.getElementById('workerList');
-    const profileImage = document.getElementById('profileImage');
-    const editProfileIcon = document.getElementById('editProfileIcon');
-    const workerName = document.getElementById('workerName');
-    const workerDepartment = document.getElementById('workerDepartment');
+    const sidebarProfileImage = document.getElementById('sidebarProfileImage');
+    const sidebarWorkerName = document.getElementById('sidebarWorkerName');
+    const sidebarWorkerDepartment = document.getElementById('sidebarWorkerDepartment');
+    const editProfileImageBtn = document.getElementById('editProfileImageBtn');
+    const imageUpload = document.getElementById('imageUpload');
     const harvestForm = document.getElementById('harvestForm');
     const dynamicInputs = document.getElementById('dynamicInputs');
     const topicList = document.getElementById('topicList');
     const submitHarvest = document.getElementById('submitHarvest');
-    const commentBox = document.getElementById('commentBox');
-    const commentModal = document.getElementById('commentModal');
-    const commentList = document.getElementById('commentList');
-    const applyLeaveBtn = document.getElementById('applyLeaveBtn');
-    const leaveModal = document.getElementById('leaveModal');
-    const leaveApplicationForm = document.getElementById('leaveApplicationForm');
-    const leaveRequestsBtn = document.getElementById('leaveRequestsBtn');
-    const leaveRequestsModal = document.getElementById('leaveRequestsModal');
-    const leaveRequestsList = document.getElementById('leaveRequestsList');
-    const leaveRequestNotification = document.getElementById('leaveRequestNotification');
-    const imageUpload = document.getElementById('imageUpload');
-    const scoreboardTitle = document.getElementById('scoreboardTitle');
     const scoreTableBody = document.getElementById('scoreTableBody');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebar = document.querySelector('.sidebar');
+    const mainContent = document.querySelector('.main-content');
+    const dashboardLink = document.getElementById('dashboardLink');
+    const applyLeaveLink = document.getElementById('applyLeaveLink');
+    const leaveRequestsLink = document.getElementById('leaveRequestsLink');
+    const commentsLink = document.getElementById('commentsLink');
+    const dashboardContent = document.getElementById('dashboardContent');
+    const applyLeaveContent = document.getElementById('applyLeaveContent');
+    const leaveRequestsContent = document.getElementById('leaveRequestsContent');
+    const commentsContent = document.getElementById('commentsContent');
+    const leaveApplicationForm = document.getElementById('leaveApplicationForm');
+    const leaveRequestsList = document.getElementById('leaveRequestsList');
+    const commentList = document.getElementById('commentList');
+    const addCommentForm = document.getElementById('addCommentForm');
+    const leaveRequestNotification = document.getElementById('leaveRequestNotification');
 
     let currentWorker = null;
 
-    function loadWorkers() {
+    // Load workers list
+    function loadWorkers(searchTerm = '') {
         const workers = JSON.parse(localStorage.getItem('workers')) || [];
+        const filteredWorkers = workers.filter(worker =>
+            worker.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            worker.department.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+
         workerList.innerHTML = '';
-        workers.forEach(worker => {
+        filteredWorkers.forEach(worker => {
             const workerItem = document.createElement('div');
             workerItem.className = 'worker-item';
             workerItem.innerHTML = `
                 <img src="${worker.photo || '/placeholder.svg?height=40&width=40&text=' + worker.name}" alt="${worker.name}'s photo">
                 <div class="worker-info">
-                    <span class="worker-name">${worker.name}</span>
-                    <span class="worker-department">${worker.department}</span>
+                    <div class="worker-name">${worker.name}</div>
+                    <div class="worker-department">${worker.department}</div>
                 </div>
             `;
             workerItem.addEventListener('click', () => openLoginModal(worker));
@@ -49,39 +61,43 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Handle worker login
     function openLoginModal(worker) {
         loginModalTitle.textContent = `Login: ${worker.name}`;
         loginModal.style.display = 'block';
         passwordInput.value = '';
-        loginBtn.onclick = () => attemptLogin(worker);
+        loginForm.onsubmit = (e) => {
+            e.preventDefault();
+            if (passwordInput.value === worker.password) {
+                currentWorker = worker;
+                loginModal.style.display = 'none';
+                workerContainer.classList.add('hidden');
+                dashboard.classList.remove('hidden');
+                loadWorkerDashboard();
+            } else {
+                alert('Incorrect password. Please try again.');
+            }
+        };
     }
 
-    function attemptLogin(worker) {
-        if (passwordInput.value === worker.password) {
-            currentWorker = worker;
-            loginModal.style.display = 'none';
-            workerContainer.hidden = true;
-            dashboard.hidden = false;
-            loadWorkerDashboard();
-        } else {
-            alert('Incorrect password. Please try again.');
-        }
-    }
-
+    // Load worker dashboard
     function loadWorkerDashboard() {
-        profileImage.src = currentWorker.photo || '/placeholder.svg?height=100&width=100&text=' + currentWorker.name;
-        workerName.textContent = currentWorker.name;
-        workerDepartment.textContent = currentWorker.department;
+        sidebarProfileImage.src = currentWorker.photo || '/placeholder.svg?height=100&width=100&text=' + currentWorker.name;
+        sidebarWorkerName.textContent = currentWorker.name;
+        sidebarWorkerDepartment.textContent = currentWorker.department;
         loadHarvestForm();
         loadComments();
         updateLeaveRequestNotification();
         updateScoreboard();
+        showDashboardContent();
     }
 
+    // Load harvest form
     function loadHarvestForm() {
         const columns = JSON.parse(localStorage.getItem('columns')) || [];
         const topics = JSON.parse(localStorage.getItem('topics')) || [];
-    
+
+        // Load harvest inputs
         dynamicInputs.innerHTML = '';
         columns.forEach(column => {
             if (column.department === 'all' || column.department === currentWorker.department) {
@@ -94,34 +110,39 @@ document.addEventListener('DOMContentLoaded', () => {
                 dynamicInputs.appendChild(inputGroup);
             }
         });
-    
+
+        // Load topics
         topicList.innerHTML = '';
         topics.forEach(topic => {
-            if (topic && topic.name && topic.points !== undefined) {
-                const topicItem = document.createElement('span');
-                topicItem.className = 'topic-tag';
-                topicItem.innerHTML = `
-                    <input type="checkbox" id="${topic.name}" name="${topic.name}">
-                    <label for="${topic.name}">${topic.name} (${topic.points} points)</label>
-                `;
-                topicList.appendChild(topicItem);
-            }
+            const topicTag = document.createElement('label');
+            topicTag.className = 'topic-tag';
+            topicTag.innerHTML = `
+                <input type="checkbox" name="${topic.name}">
+                <span>${topic.name} (${topic.points} points)</span>
+            `;
+            topicList.appendChild(topicTag);
         });
     }
-    
-    submitHarvest.addEventListener('click', () => {
+
+    // Handle harvest submission
+    harvestForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+
         const harvestData = {};
-        const inputs = dynamicInputs.querySelectorAll('input');
-        inputs.forEach(input => {
-            harvestData[input.name] = parseInt(input.value) || 0;
-        });
-    
-        const selectedTopics = [];
-        const topicCheckboxes = topicList.querySelectorAll('input[type="checkbox"]:checked');
-        topicCheckboxes.forEach(checkbox => {
-            selectedTopics.push(checkbox.name);
-        });
-    
+        const formData = new FormData(harvestForm);
+
+        // Get harvest values
+        for (const [name, value] of formData.entries()) {
+            if (!name.includes('topic')) {
+                harvestData[name] = parseInt(value) || 0;
+            }
+        }
+
+        // Get selected topics
+        const selectedTopics = Array.from(topicList.querySelectorAll('input[type="checkbox"]:checked'))
+            .map(checkbox => checkbox.name);
+
+        // Update worker data
         const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
         if (!workerData[currentWorker.name]) {
             workerData[currentWorker.name] = {
@@ -129,108 +150,165 @@ document.addEventListener('DOMContentLoaded', () => {
                 topicPoints: 0
             };
         }
-    
+
         // Update harvest data
         Object.keys(harvestData).forEach(key => {
             workerData[currentWorker.name][key] = (workerData[currentWorker.name][key] || 0) + harvestData[key];
         });
-    
+
         // Update topic points
         const topics = JSON.parse(localStorage.getItem('topics')) || [];
-        let topicPointsEarned = 0;
-        selectedTopics.forEach(topicName => {
+        const topicPoints = selectedTopics.reduce((total, topicName) => {
             const topic = topics.find(t => t.name === topicName);
-            if (topic) {
-                topicPointsEarned += topic.points;
-            }
-        });
-        workerData[currentWorker.name].topicPoints = (workerData[currentWorker.name].topicPoints || 0) + topicPointsEarned;
-    
-        // Add activity
+            return total + (topic ? topic.points : 0);
+        }, 0);
+        workerData[currentWorker.name].topicPoints = (workerData[currentWorker.name].topicPoints || 0) + topicPoints;
+
+        // Add activity record
         workerData[currentWorker.name].activities.push({
             timestamp: new Date().toISOString(),
             harvest: harvestData,
             topics: selectedTopics
         });
-    
-        // Update last submission
-        workerData[currentWorker.name].lastSubmission = {
-            timestamp: new Date().toISOString(),
-            harvest: harvestData,
-            topics: selectedTopics
-        };
-    
+
         localStorage.setItem('workerData', JSON.stringify(workerData));
-        alert('Harvest data submitted successfully!');
-        loadHarvestForm(); // Reset the form
+
+        alert('Harvest submitted successfully!');
+        harvestForm.reset();
         updateScoreboard();
     });
-    
+
+    // Load scoreboard
+    function updateScoreboard() {
+        const workers = JSON.parse(localStorage.getItem('workers')) || [];
+        const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
+
+        const departmentWorkers = workers
+            .filter(worker => worker.department === currentWorker.department)
+            .map(worker => {
+                const data = workerData[worker.name] || {};
+                return {
+                    name: worker.name,
+                    points: calculateTotalPoints(data)
+                };
+            })
+            .sort((a, b) => b.points - a.points);
+
+        scoreTableBody.innerHTML = '';
+        departmentWorkers.forEach((worker, index) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${index + 1}</td>
+                <td>${worker.name}</td>
+                <td>${worker.points}</td>
+            `;
+            scoreTableBody.appendChild(row);
+        });
+    }
+
+    // Calculate total points
+    function calculateTotalPoints(data) {
+        const columns = JSON.parse(localStorage.getItem('columns')) || [];
+        return columns.reduce((total, column) => {
+            return total + (parseInt(data[column.name.toLowerCase().replace(/\s+/g, '')]) || 0);
+        }, 0) + (parseInt(data.topicPoints) || 0);
+    }
+
+    // Handle search
+    searchInput.addEventListener('input', (e) => {
+        loadWorkers(e.target.value);
+    });
+
+    // Toggle sidebar
+    sidebarToggle.addEventListener('click', () => {
+        sidebar.classList.toggle('active');
+        mainContent.classList.toggle('sidebar-active');
+    });
+
+    // Handle sidebar navigation
+    dashboardLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        showDashboardContent();
+    });
+
+    applyLeaveLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        showApplyLeaveContent();
+    });
+
+    leaveRequestsLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        showLeaveRequestsContent();
+    });
+
+    commentsLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        showCommentsContent();
+    });
+
+    // Show dashboard content
+    function showDashboardContent() {
+        hideAllContent();
+        dashboardContent.classList.remove('hidden');
+        setActiveLink(dashboardLink);
+    }
+
+    // Show apply leave content
+    function showApplyLeaveContent() {
+        hideAllContent();
+        applyLeaveContent.classList.remove('hidden');
+        setActiveLink(applyLeaveLink);
+    }
+
+    // Show leave requests content
+    function showLeaveRequestsContent() {
+        hideAllContent();
+        leaveRequestsContent.classList.remove('hidden');
+        setActiveLink(leaveRequestsLink);
+        loadLeaveRequests();
+    }
+
+    // Show comments content
+    function showCommentsContent() {
+        hideAllContent();
+        commentsContent.classList.remove('hidden');
+        setActiveLink(commentsLink);
+        loadComments();
+    }
+
+    // Hide all content sections
+    function hideAllContent() {
+        dashboardContent.classList.add('hidden');
+        applyLeaveContent.classList.add('hidden');
+        leaveRequestsContent.classList.add('hidden');
+        commentsContent.classList.add('hidden');
+    }
+
+    // Set active link in sidebar
+    function setActiveLink(activeLink) {
+        const links = [dashboardLink, applyLeaveLink, leaveRequestsLink, commentsLink];
+        links.forEach(link => link.classList.remove('active'));
+        activeLink.classList.add('active');
+    }
+
+    // Load comments
     function loadComments() {
         const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
         const comments = workerData[currentWorker.name]?.comments || [];
         
-        // Sort comments by timestamp, most recent first
-        comments.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-    
-        if (comments.some(comment => comment.isNew)) {
-            commentBox.classList.add('new-comment');
-        } else {
-            commentBox.classList.remove('new-comment');
-        }
-    
         commentList.innerHTML = '';
-        comments.forEach((comment, index) => {
+        comments.forEach(comment => {
             const commentElement = document.createElement('div');
             commentElement.className = 'comment';
             commentElement.innerHTML = `
                 <p>${comment.text}</p>
                 <small>${new Date(comment.timestamp).toLocaleString()}</small>
-                ${comment.reply ? `
-                    <p><strong>Your reply:</strong> ${comment.reply.text}</p>
-                    <small>${new Date(comment.reply.timestamp).toLocaleString()}</small>
-                ` : `
-                    <textarea class="reply-text" placeholder="Type your reply here"></textarea>
-                    <button class="send-reply" data-index="${index}">Send Reply</button>
-                `}
             `;
             commentList.appendChild(commentElement);
         });
-    
-        const replyButtons = commentList.querySelectorAll('.send-reply');
-        replyButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const index = button.getAttribute('data-index');
-                const replyText = button.previousElementSibling.value;
-                if (replyText.trim()) {
-                    comments[index].reply = {
-                        text: replyText,
-                        timestamp: new Date().toISOString()
-                    };
-                    comments[index].isNew = false;
-                    localStorage.setItem('workerData', JSON.stringify(workerData));
-                    loadComments();
-                }
-            });
-        });
     }
 
-    commentBox.addEventListener('click', () => {
-        commentModal.style.display = 'block';
-        const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
-        if (workerData[currentWorker.name]?.comments) {
-            workerData[currentWorker.name].comments.forEach(comment => {
-                comment.isNew = false;
-            });
-            localStorage.setItem('workerData', JSON.stringify(workerData));
-        }
-        commentBox.classList.remove('new-comment');
-    });
-
-    applyLeaveBtn.addEventListener('click', () => {
-        leaveModal.style.display = 'block';
-    });
-
+    // Handle leave application
     leaveApplicationForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const leaveType = document.getElementById('leaveType').value;
@@ -238,7 +316,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const endDate = document.getElementById('endDate').value;
         const totalDays = document.getElementById('totalDays').value;
         const reason = document.getElementById('reason').value;
-        const attachment = document.getElementById('attachment').files[0];
 
         const leaveApplications = JSON.parse(localStorage.getItem('leaveApplications')) || [];
         const newApplication = {
@@ -250,7 +327,6 @@ document.addEventListener('DOMContentLoaded', () => {
             endDate,
             totalDays,
             reason,
-            attachmentName: attachment ? attachment.name : null,
             status: 'Pending',
             submittedAt: new Date().toISOString()
         };
@@ -258,36 +334,14 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('leaveApplications', JSON.stringify(leaveApplications));
 
         alert('Leave application submitted successfully!');
-        leaveModal.style.display = 'none';
         leaveApplicationForm.reset();
     });
 
-    // Calculate total days when start or end date changes
-    document.getElementById('startDate').addEventListener('change', updateTotalDays);
-    document.getElementById('endDate').addEventListener('change', updateTotalDays);
-
-    function updateTotalDays() {
-        const startDate = new Date(document.getElementById('startDate').value);
-        const endDate = new Date(document.getElementById('endDate').value);
-        if (startDate && endDate) {
-            const diffTime = Math.abs(endDate - startDate);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // Add 1 to include both start and end dates
-            document.getElementById('totalDays').value = diffDays;
-        }
-    }
-
-    leaveRequestsBtn.addEventListener('click', () => {
-        leaveRequestsModal.style.display = 'block';
-        loadLeaveRequests();
-    });
-
+    // Load leave requests
     function loadLeaveRequests() {
         const leaveApplications = JSON.parse(localStorage.getItem('leaveApplications')) || [];
         const workerApplications = leaveApplications.filter(app => app.workerName === currentWorker.name);
         
-        // Sort applications by submission date, most recent first
-        workerApplications.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
-    
         leaveRequestsList.innerHTML = '';
         workerApplications.forEach(app => {
             const requestElement = document.createElement('div');
@@ -297,63 +351,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 <p><strong>Dates:</strong> ${app.startDate} to ${app.endDate}</p>
                 <p><strong>Status:</strong> ${app.status}</p>
             `;
-            // Add click event to the entire leave request element
-            requestElement.addEventListener('click', () => viewLeaveDetails(app.id));
             leaveRequestsList.appendChild(requestElement);
         });
-    
-        updateLeaveRequestNotification();
     }
 
-    function viewLeaveDetails(leaveId) {
-        const leaveApplications = JSON.parse(localStorage.getItem('leaveApplications')) || [];
-        const application = leaveApplications.find(app => app.id === leaveId);
-    
-        if (application) {
-            // Only mark as viewed if the status is Approved or Rejected
-            if (application.status === 'Approved' || application.status === 'Rejected') {
-                application.workerViewed = true;
-                localStorage.setItem('leaveApplications', JSON.stringify(leaveApplications));
-                updateLeaveRequestNotification();
-            }
-    
-            const modal = document.createElement('div');
-            modal.className = 'modal';
-            modal.innerHTML = `
-                <div class="modal-content">
-                    <span class="close">&times;</span>
-                    <h3>Leave Request Details</h3>
-                    <p><strong>Leave Type:</strong> ${application.leaveType}</p>
-                    <p><strong>Start Date:</strong> ${application.startDate}</p>
-                    <p><strong>End Date:</strong> ${application.endDate}</p>
-                    <p><strong>Total Days:</strong> ${application.totalDays}</p>
-                    <p><strong>Reason:</strong> ${application.reason}</p>
-                    <p><strong>Status:</strong> ${application.status}</p>
-                    ${application.adminComments ? `<p><strong>Admin Comments:</strong> ${application.adminComments}</p>` : ''}
-                    <button id="closeLeaveDetailsBtn">Close</button>
-                </div>
-            `;
-            document.body.appendChild(modal);
-    
-            const closeBtn = modal.querySelector('.close');
-            const closeLeaveDetailsBtn = document.getElementById('closeLeaveDetailsBtn');
-    
-            closeBtn.onclick = () => {
-                document.body.removeChild(modal);
-            };
-    
-            closeLeaveDetailsBtn.onclick = () => {
-                document.body.removeChild(modal);
-            };
-    
-            window.onclick = (event) => {
-                if (event.target === modal) {
-                    document.body.removeChild(modal);
-                }
-            };
-        }
-    }
-    
+    // Update leave request notification
     function updateLeaveRequestNotification() {
         const leaveApplications = JSON.parse(localStorage.getItem('leaveApplications')) || [];
         const newApplications = leaveApplications.filter(app => 
@@ -363,84 +365,80 @@ document.addEventListener('DOMContentLoaded', () => {
         );
         
         if (newApplications.length > 0) {
-            leaveRequestNotification.style.display = 'inline-block';
-            leaveRequestNotification.textContent = newApplications.length;
+            leaveRequestNotification.classList.remove('hidden');
         } else {
-            leaveRequestNotification.style.display = 'none';
+            leaveRequestNotification.classList.add('hidden');
         }
     }
 
-
-    function updateWorkerPhoto(photoData) {
-        const workers = JSON.parse(localStorage.getItem('workers')) || [];
-        const workerIndex = workers.findIndex(w => w.name === currentWorker.name);
-        if (workerIndex !== -1) {
-            workers[workerIndex].photo = photoData;
-            localStorage.setItem('workers', JSON.stringify(workers));
-            
-            const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
-            if (workerData[currentWorker.name]) {
-                workerData[currentWorker.name].photo = photoData;
-                localStorage.setItem('workerData', JSON.stringify(workerData));
-            }
-            
-            currentWorker.photo = photoData;
-        }
-    }
-
-    function updateScoreboard() {
-        const workers = JSON.parse(localStorage.getItem('workers')) || [];
+    // Handle adding a new comment
+    addCommentForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const commentText = document.getElementById('commentText').value;
+        
         const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
+        if (!workerData[currentWorker.name]) {
+            workerData[currentWorker.name] = { comments: [] };
+        }
         
-        const departmentWorkers = workers.filter(worker => worker.department === currentWorker.department);
-        const sortedWorkers = departmentWorkers.map(worker => {
-            const data = workerData[worker.name] || {};
-            const totalPoints = calculateTotalPoints(data);
-            return { ...worker, totalPoints };
-        }).sort((a, b) => b.totalPoints - a.totalPoints);
-
-        scoreboardTitle.textContent = `${currentWorker.department} Scoreboard`;
-        scoreTableBody.innerHTML = '';
-        sortedWorkers.forEach((worker, index) => {
-            const row = scoreTableBody.insertRow();
-            row.innerHTML = `
-                <td>${index + 1}</td>
-                <td>${worker.name}</td>
-                <td>${worker.totalPoints}</td>
-            `;
-        });
-    }
-
-    function calculateTotalPoints(data) {
-        const columns = JSON.parse(localStorage.getItem('columns')) || [];
-        return columns.reduce((total, column) => {
-            return total + (parseInt(data[column.name.toLowerCase().replace(/\s+/g, '')]) || 0);
-        }, 0) + (parseInt(data.topicPoints) || 0);
-    }
-
-    searchWorker.addEventListener('input', (e) => {
-        const searchTerm = e.target.value.toLowerCase();
-        const workers = JSON.parse(localStorage.getItem('workers')) || [];
-        const filteredWorkers = workers.filter(worker => 
-            worker.name.toLowerCase().includes(searchTerm) ||
-            worker.department.toLowerCase().includes(searchTerm)
-        );
+        const newComment = {
+            text: commentText,
+            timestamp: new Date().toISOString()
+        };
         
-        workerList.innerHTML = '';
-        filteredWorkers.forEach(worker => {
-            const workerItem = document.createElement('div');
-            workerItem.className = 'worker-item';
-            workerItem.innerHTML = `
-                <img src="${worker.photo || '/placeholder.svg?height=40&width=40&text=' + worker.name}" alt="${worker.name}'s photo">
-                <div class="worker-info">
-                    <span class="worker-name">${worker.name}</span>
-                    <span class="worker-department">${worker.department}</span>
-                </div>
-            `;
-            workerItem.addEventListener('click', () => openLoginModal(worker));
-            workerList.appendChild(workerItem);
-        });
+        workerData[currentWorker.name].comments = workerData[currentWorker.name].comments || [];
+        workerData[currentWorker.name].comments.push(newComment);
+        
+        localStorage.setItem('workerData', JSON.stringify(workerData));
+        
+        addCommentForm.reset();
+        loadComments();
     });
+
+    // Handle profile image edit
+    editProfileImageBtn.addEventListener('click', () => {
+        imageUpload.click();
+    });
+
+    imageUpload.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const newPhotoUrl = e.target.result;
+                sidebarProfileImage.src = newPhotoUrl;
+                
+                // Update worker's photo in localStorage
+                const workers = JSON.parse(localStorage.getItem('workers')) || [];
+                const updatedWorkers = workers.map(worker => {
+                    if (worker.name === currentWorker.name) {
+                        return { ...worker, photo: newPhotoUrl };
+                    }
+                    return worker;
+                });
+                localStorage.setItem('workers', JSON.stringify(updatedWorkers));
+                
+                // Update current worker's photo
+                currentWorker.photo = newPhotoUrl;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Calculate total days for leave application
+    document.getElementById('startDate').addEventListener('change', updateTotalDays);
+    document.getElementById('endDate').addEventListener('change', updateTotalDays);
+
+    function updateTotalDays() {
+        const startDate = new Date(document.getElementById('startDate').value);
+        const endDate = new Date(document.getElementById('endDate').value);
+        
+        if (startDate && endDate) {
+            const diffTime = Math.abs(endDate - startDate);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            document.getElementById('totalDays').value = diffDays;
+        }
+    }
 
     // Close modals when clicking on the close button or outside the modal
     document.querySelectorAll('.modal .close').forEach(closeBtn => {
