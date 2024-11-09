@@ -16,7 +16,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const harvestForm = document.getElementById('harvestForm');
     const dynamicInputs = document.getElementById('dynamicInputs');
     const topicList = document.getElementById('topicList');
-    const submitHarvest = document.getElementById('submitHarvest');
     const scoreTableBody = document.getElementById('scoreTableBody');
     const sidebarToggle = document.getElementById('sidebarToggle');
     const sidebar = document.querySelector('.sidebar');
@@ -50,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const workerItem = document.createElement('div');
             workerItem.className = 'worker-item';
             workerItem.innerHTML = `
-                <img src="${worker.photo || '/placeholder.svg?height=40&width=40&text=' + worker.name}" alt="${worker.name}'s photo">
+                <img src="${worker.photo || '/placeholder.svg?height=100&width=100&text=' + worker.name}" alt="${worker.name}'s photo" class="worker-photo">
                 <div class="worker-info">
                     <div class="worker-name">${worker.name}</div>
                     <div class="worker-department">${worker.department}</div>
@@ -83,6 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load worker dashboard
     function loadWorkerDashboard() {
         sidebarProfileImage.src = currentWorker.photo || '/placeholder.svg?height=100&width=100&text=' + currentWorker.name;
+        sidebarProfileImage.alt = `${currentWorker.name}'s profile picture`;
         sidebarWorkerName.textContent = currentWorker.name;
         sidebarWorkerDepartment.textContent = currentWorker.department;
         loadHarvestForm();
@@ -105,22 +105,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 inputGroup.className = 'input-group';
                 inputGroup.innerHTML = `
                     <label for="${column.name}">${column.name}:</label>
-                    <input type="number" id="${column.name}" name="${column.name}" min="0" required>
+                    <input type="number" id="${column.name}" name="${column.name}" min="0">
                 `;
                 dynamicInputs.appendChild(inputGroup);
             }
         });
 
         // Load topics
-        topicList.innerHTML = '';
+        topicList.innerHTML = '<h4>Available Topics</h4>';
         topics.forEach(topic => {
-            const topicTag = document.createElement('label');
-            topicTag.className = 'topic-tag';
-            topicTag.innerHTML = `
-                <input type="checkbox" name="${topic.name}">
-                <span>${topic.name} (${topic.points} points)</span>
-            `;
-            topicList.appendChild(topicTag);
+            if (topic.department === 'all' || topic.department === currentWorker.department) {
+                const topicTag = document.createElement('label');
+                topicTag.className = 'topic-tag';
+                topicTag.innerHTML = `
+                    <input type="checkbox" name="topic" value="${topic.name}">
+                    <span>${topic.name} (${topic.points} points)</span>
+                `;
+                topicList.appendChild(topicTag);
+            }
         });
     }
 
@@ -130,17 +132,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const harvestData = {};
         const formData = new FormData(harvestForm);
+        let hasData = false;
 
         // Get harvest values
         for (const [name, value] of formData.entries()) {
-            if (!name.includes('topic')) {
+            if (!name.includes('topic') && value !== '') {
                 harvestData[name] = parseInt(value) || 0;
+                if (parseInt(value) > 0) hasData = true;
             }
         }
 
         // Get selected topics
         const selectedTopics = Array.from(topicList.querySelectorAll('input[type="checkbox"]:checked'))
-            .map(checkbox => checkbox.name);
+            .map(checkbox => checkbox.value);
+        
+        if (selectedTopics.length > 0) hasData = true;
+
+        if (!hasData) {
+            alert('Please enter at least one harvest value or select a topic.');
+            return;
+        }
 
         // Update worker data
         const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
@@ -168,7 +179,8 @@ document.addEventListener('DOMContentLoaded', () => {
         workerData[currentWorker.name].activities.push({
             timestamp: new Date().toISOString(),
             harvest: harvestData,
-            topics: selectedTopics
+            topics: selectedTopics,
+            points: topicPoints + Object.values(harvestData).reduce((a, b) => a + b, 0)
         });
 
         localStorage.setItem('workerData', JSON.stringify(workerData));
@@ -178,7 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateScoreboard();
     });
 
-    // Load scoreboard
+    // Update scoreboard
     function updateScoreboard() {
         const workers = JSON.parse(localStorage.getItem('workers')) || [];
         const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
@@ -187,12 +199,15 @@ document.addEventListener('DOMContentLoaded', () => {
             .filter(worker => worker.department === currentWorker.department)
             .map(worker => {
                 const data = workerData[worker.name] || {};
+                const totalPoints = calculateTotalPoints(data);
+                const todayPoints = calculateTodayPoints(data);
                 return {
                     name: worker.name,
-                    points: calculateTotalPoints(data)
+                    totalPoints,
+                    todayPoints
                 };
             })
-            .sort((a, b) => b.points - a.points);
+            .sort((a, b) => b.totalPoints - a.totalPoints);
 
         scoreTableBody.innerHTML = '';
         departmentWorkers.forEach((worker, index) => {
@@ -200,7 +215,8 @@ document.addEventListener('DOMContentLoaded', () => {
             row.innerHTML = `
                 <td>${index + 1}</td>
                 <td>${worker.name}</td>
-                <td>${worker.points}</td>
+                <td>${worker.todayPoints}</td>
+                <td>${worker.totalPoints}</td>
             `;
             scoreTableBody.appendChild(row);
         });
@@ -214,6 +230,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 0) + (parseInt(data.topicPoints) || 0);
     }
 
+    // Calculate today's points
+    function calculateTodayPoints(data) {
+        const today = new Date().toDateString();
+        return (data.activities || [])
+            .filter(activity => new Date(activity.timestamp).toDateString() === today)
+            .reduce((total, activity) => total + activity.points, 0);
+    }
+
     // Handle search
     searchInput.addEventListener('input', (e) => {
         loadWorkers(e.target.value);
@@ -224,7 +248,51 @@ document.addEventListener('DOMContentLoaded', () => {
         sidebar.classList.toggle('active');
         mainContent.classList.toggle('sidebar-active');
     });
-
+    // Update the sidebar toggle functionality
+sidebarToggle.addEventListener('click', () => {
+    sidebar.classList.toggle('collapsed');
+    mainContent.classList.toggle('expanded');
+    
+    // Store sidebar state in localStorage
+    localStorage.setItem('sidebarState', sidebar.classList.contains('collapsed') ? 'collapsed' : 'expanded');
+});
+// Add event listener for clicking outside sidebar on mobile
+document.addEventListener('click', (e) => {
+    const isMobile = window.innerWidth <= 768;
+    const clickedOutsideSidebar = !sidebar.contains(e.target) && !sidebarToggle.contains(e.target);
+    
+    if (isMobile && clickedOutsideSidebar && sidebar.classList.contains('active')) {
+        sidebar.classList.remove('active');
+        mainContent.classList.remove('sidebar-active');
+    }
+});
+window.addEventListener('load', () => {
+    const isMobile = window.innerWidth <= 768;
+    const storedState = localStorage.getItem('sidebarState');
+    
+    if (isMobile) {
+        sidebar.classList.add('collapsed');
+        mainContent.classList.add('expanded');
+    } else if (storedState === 'collapsed') {
+        sidebar.classList.add('collapsed');
+        mainContent.classList.add('expanded');
+    }
+});
+// Update sidebar state on window resize
+window.addEventListener('resize', () => {
+    const isMobile = window.innerWidth <= 768;
+    
+    if (isMobile) {
+        sidebar.classList.add('collapsed');
+        mainContent.classList.add('expanded');
+    } else {
+        const storedState = localStorage.getItem('sidebarState');
+        if (storedState === 'expanded') {
+            sidebar.classList.remove('collapsed');
+            mainContent.classList.remove('expanded');
+        }
+    }
+});
     // Handle sidebar navigation
     dashboardLink.addEventListener('click', (e) => {
         e.preventDefault();
@@ -347,12 +415,25 @@ document.addEventListener('DOMContentLoaded', () => {
             const requestElement = document.createElement('div');
             requestElement.className = 'leave-request';
             requestElement.innerHTML = `
-                <p><strong>Leave Type:</strong> ${app.leaveType}</p>
+                <h4>${app.leaveType}</h4>
                 <p><strong>Dates:</strong> ${app.startDate} to ${app.endDate}</p>
-                <p><strong>Status:</strong> ${app.status}</p>
+                <p><strong>Total Days:</strong> ${app.totalDays}</p>
+                <p><strong>Status:</strong> <span class="status-${app.status.toLowerCase()}">${app.status}</span></p>
+                <p><strong>Reason:</strong> ${app.reason}</p>
+                <small>Submitted on: ${new Date(app.submittedAt).toLocaleString()}</small>
             `;
             leaveRequestsList.appendChild(requestElement);
         });
+
+        // Mark notifications as viewed
+        const updatedApplications = leaveApplications.map(app => {
+            if (app.workerName === currentWorker.name) {
+                return { ...app, workerViewed: true };
+            }
+            return app;
+        });
+        localStorage.setItem('leaveApplications', JSON.stringify(updatedApplications));
+        updateLeaveRequestNotification();
     }
 
     // Update leave request notification
@@ -366,6 +447,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (newApplications.length > 0) {
             leaveRequestNotification.classList.remove('hidden');
+            leaveRequestNotification.textContent = newApplications.length;
         } else {
             leaveRequestNotification.classList.add('hidden');
         }
