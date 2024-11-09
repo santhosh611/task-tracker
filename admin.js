@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const leaveApplicationsBody = document.getElementById('leaveApplicationsBody');
     const addColumnForm = document.getElementById('addColumnForm');
     const addNewDepartmentBtn = document.getElementById('addNewDepartmentBtn');
+    const recentLeaveRequests = document.getElementById('recentLeaveRequests');
 
     const adminCredentials = {
         username: 'admin',
@@ -39,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
             loadDepartments();
             loadTopics();
             loadColumns();
+            loadLeaveApplications();
         } else {
             alert('Invalid credentials. Please try again.');
         }
@@ -71,6 +73,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         sidebarLinks.forEach(link => link.classList.remove('active'));
         document.querySelector(`[data-section="${sectionId}"]`).classList.add('active');
+
+        if (sectionId === 'leaveManagement') {
+            loadLeaveApplications();
+        } else if (sectionId === 'viewAllReplies') {
+            loadAllReplies();
+        }
     }
 
     // Load worker activities
@@ -155,7 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             row.querySelector('.edit-worker-btn').addEventListener('click', () => openEditWorkerModal(worker.name));
-            row.querySelector('.delete-worker-btn').addEventListener('click', () =>   openDeleteWorkerModal(worker.name));
+            row.querySelector('.delete-worker-btn').addEventListener('click', () => openDeleteWorkerModal(worker.name));
             row.querySelector('.add-comment-btn').addEventListener('click', () => openAddCommentModal(worker.name));
             row.querySelector('.view-report-btn').addEventListener('click', () => openWorkerReportModal(worker));
             row.querySelector('.reset-worker-btn').addEventListener('click', () => openResetWorkerActivitiesModal(worker.name));
@@ -255,14 +263,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const editWorkerForm = document.getElementById('editWorkerForm');
             const editWorkerPhoto = document.getElementById('editWorkerPhoto');
             const previewPhoto = document.getElementById('previewPhoto');
-            const cancelBtn = editWorkerForm.querySelector('.cancel-btn');
 
             editWorkerPhoto.addEventListener('change', (e) => {
                 const file = e.target.files[0];
                 if (file) {
                     const reader = new FileReader();
-                    reader.onload = function(event) {
-                        previewPhoto.src = event.target.result;
+                    reader.onload = (e) => {
+                        previewPhoto.src = e.target.result;
                     };
                     reader.readAsDataURL(file);
                 }
@@ -274,46 +281,46 @@ document.addEventListener('DOMContentLoaded', () => {
                 const newUsername = document.getElementById('editWorkerUsername').value;
                 const newDepartment = document.getElementById('editWorkerDepartment').value;
                 const newPassword = document.getElementById('editWorkerPassword').value;
-                const newPhoto = previewPhoto.src;
 
-                const oldName = worker.name;
+                // Update worker data
                 worker.name = newName;
                 worker.username = newUsername;
                 worker.department = newDepartment;
                 if (newPassword) {
                     worker.password = newPassword;
                 }
-                worker.photo = newPhoto;
 
+                // Update photo if a new one was selected
+                if (editWorkerPhoto.files.length > 0) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        worker.photo = e.target.result;
+                        updateWorkerData();
+                    };
+                    reader.readAsDataURL(editWorkerPhoto.files[0]);
+                } else {
+                    updateWorkerData();
+                }
+            });
+
+            function updateWorkerData() {
+                // Update localStorage
                 localStorage.setItem('workers', JSON.stringify(workers));
 
-                if (oldName !== newName) {
-                    workerData[newName] = { 
-                        ...workerActivityData, 
-                        name: newName, 
-                        department: newDepartment,
-                        photo: newPhoto
-                    };
-                    delete workerData[oldName];
-                } else {
-                    workerData[newName] = { 
-                        ...workerActivityData, 
-                        department: newDepartment,
-                        photo: newPhoto
-                    };
+                // Update workerData if the name has changed
+                if (worker.name !== workerName) {
+                    workerData[worker.name] = workerActivityData;
+                    delete workerData[workerName];
+                    localStorage.setItem('workerData', JSON.stringify(workerData));
                 }
-                localStorage.setItem('workerData', JSON.stringify(workerData));
 
-                alert('Worker information updated successfully!');
-                modal.style.display = 'none';
                 loadWorkerActivities();
-            });
+                modal.style.display = 'none';
+            }
 
-            cancelBtn.addEventListener('click', () => {
+            document.querySelector('.cancel-btn').addEventListener('click', () => {
                 modal.style.display = 'none';
             });
-        } else {
-            alert('Worker not found.');
         }
     }
 
@@ -321,7 +328,7 @@ document.addEventListener('DOMContentLoaded', () => {
         modalContent.innerHTML = `
             <h3>Delete Worker: ${workerName}</h3>
             <p>Are you sure you want to delete this worker? This action cannot be undone.</p>
-            <button id="confirmDeleteWorker">Delete</button>
+            <button id="confirmDeleteWorker">Confirm</button>
             <button id="cancelDeleteWorker">Cancel</button>
         `;
         modal.style.display = 'block';
@@ -337,17 +344,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function deleteWorker(workerName) {
-        const workers = JSON.parse(localStorage.getItem('workers')) || [];
-        const updatedWorkers = workers.filter(w => w.name !== workerName);
-        
-        localStorage.setItem('workers', JSON.stringify(updatedWorkers));
+        let workers = JSON.parse(localStorage.getItem('workers')) || [];
+        workers = workers.filter(worker => worker.name !== workerName);
+        localStorage.setItem('workers', JSON.stringify(workers));
 
-        const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
+        let workerData = JSON.parse(localStorage.getItem('workerData')) || {};
         delete workerData[workerName];
         localStorage.setItem('workerData', JSON.stringify(workerData));
 
-        alert('Worker deleted successfully!');
-        
         loadWorkerActivities();
     }
 
@@ -355,552 +359,70 @@ document.addEventListener('DOMContentLoaded', () => {
         modalContent.innerHTML = `
             <h3>Add Comment for ${workerName}</h3>
             <form id="addCommentForm">
-                <textarea id="adminCommentText" rows="4" required></textarea>
-                <button type="submit">Send Comment</button>
+                <textarea id="commentText" rows="4" required></textarea>
+                <button type="submit">Add Comment</button>
                 <button type="button" class="cancel-btn">Cancel</button>
             </form>
         `;
         modal.style.display = 'block';
 
-        const addCommentForm = document.getElementById('addCommentForm');
-        const cancelBtn = addCommentForm.querySelector('.cancel-btn');
-
-        addCommentForm.addEventListener('submit', (e) => {
+        document.getElementById('addCommentForm').addEventListener('submit', (e) => {
             e.preventDefault();
-            const comment = document.getElementById('adminCommentText').value.trim();
-            if (comment) {
-                const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
-                if (!workerData[workerName]) {
-                    workerData[workerName] = { comments: [] };
-                }
-                if (!workerData[workerName].comments) {
-                    workerData[workerName].comments = [];
-                }
-                workerData[workerName].comments.push({
-                    text: comment,
-                    timestamp: new Date().toISOString(),
-                    isNew: true
-                });
-                localStorage.setItem('workerData', JSON.stringify(workerData));
-                alert('Comment sent successfully!');
-                modal.style.display = 'none';
-            } else {
-                alert('Please enter a comment before sending.');
-            }
-        });
-
-        cancelBtn.addEventListener('click', () => {
+            const commentText = document.getElementById('commentText').value;
+            addComment(workerName, commentText);
             modal.style.display = 'none';
         });
+
+        document.querySelector('.cancel-btn').addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+    }
+
+    function addComment(workerName, commentText) {
+        const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
+        if (!workerData[workerName]) {
+            workerData[workerName] = {};
+        }
+        if (!workerData[workerName].comments) {
+            workerData[workerName].comments = [];
+        }
+        workerData[workerName].comments.push({
+            text: commentText,
+            timestamp: new Date().toISOString(),
+            adminViewed: true
+        });
+        localStorage.setItem('workerData', JSON.stringify(workerData));
+        alert('Comment added successfully.');
     }
 
     function openWorkerReportModal(worker) {
         const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
         const workerActivities = workerData[worker.name]?.activities || [];
-
-        const groupedActivities = groupActivitiesByDate(workerActivities);
+        const columns = JSON.parse(localStorage.getItem('columns')) || [];
 
         modalContent.innerHTML = `
             <h3>Worker Report: ${worker.name}</h3>
-            <div id="reportContent"></div>
-            <button id="closeReportBtn">Close</button>
+            <p>Department: ${worker.department}</p>
+            <p>Total Points: ${worker.totalPoints}</p>
+            <h4>Column Points:</h4>
+            <ul>
+                ${columns.map(column => `<li>${column.name}: ${worker[column.name.toLowerCase().replace(/\s+/g, '')] || 0}</li>`).join('')}
+                <li>Topic Points: ${worker.topicPoints || 0}</li>
+            </ul>
+            <h4>Recent Activities:</h4>
+            <ul>
+                ${workerActivities.slice(-5).reverse().map(activity => `
+                    <li>${new Date(activity.timestamp).toLocaleString()} - ${activity.type}: ${activity.points} points</li>
+                `).join('')}
+            </ul>
+            <button id="closeReportModal">Close</button>
         `;
-
-        const reportContent = document.getElementById('reportContent');
-
-        for (const [date, activities] of Object.entries(groupedActivities)) {
-            const dateSection = document.createElement('div');
-            dateSection.innerHTML = `
-                <h4>${date}</h4>
-                <ul>
-                    ${activities.map(activity => `<li>${activity.time} - ${activity.type}: ${activity.amount}</li>`).join('')}
-                </ul>
-            `;
-            reportContent.appendChild(dateSection);
-        }
-
         modal.style.display = 'block';
 
-        document.getElementById('closeReportBtn').addEventListener('click', () => {
+        document.getElementById('closeReportModal').addEventListener('click', () => {
             modal.style.display = 'none';
         });
     }
-
-    function groupActivitiesByDate(activities) {
-        const grouped = {};
-        activities.forEach(activity => {
-            const date = new Date(activity.timestamp);
-            const dateString = date.toDateString();
-            if (!grouped[dateString]) {
-                grouped[dateString] = [];
-            }
-            grouped[dateString].push({
-                time: date.toLocaleTimeString(),
-                type: activity.type,
-                amount: activity.amount
-            });
-        });
-        return grouped;
-    }
-
-    addWorkerForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const name = document.getElementById('newWorkerName').value;
-        const username = document.getElementById('newWorkerUsername').value;
-        const password = document.getElementById('newWorkerPassword').value;
-        const department = document.getElementById('newWorkerDepartment').value;
-        const photoInput = document.getElementById('newWorkerPhoto');
-        
-        const reader = new FileReader();
-        reader.onload = function(event) {
-            const photo = event.target.result;
-            
-            const workers = JSON.parse(localStorage.getItem('workers')) || [];
-            const newWorker = { name, username, password, department, photo };
-            workers.push(newWorker);
-            localStorage.setItem('workers', JSON.stringify(workers));
-
-            const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
-            workerData[name] = {
-                topicPoints: 0,
-                lastSubmission: {},
-                activities: [],
-                comments: [],
-                department
-            };
-            localStorage.setItem('workerData', JSON.stringify(workerData));
-
-            alert('New worker added successfully!');
-            addWorkerForm.reset();
-            loadWorkerActivities();
-        };
-        
-        if (photoInput.files[0]) {
-            reader.readAsDataURL(photoInput.files[0]);
-        } else {
-            reader.onload({ target: { result: null } });
-        }
-    });
-
-    function loadDepartments() {
-        const departments = JSON.parse(localStorage.getItem('departments')) || [];
-        const departmentSelect = document.getElementById('newWorkerDepartment');
-        departmentSelect.innerHTML = '<option value="">Select Department</option>';
-        departments.forEach(dept => {
-            departmentSelect.innerHTML += `<option value="${dept}">${dept}</option>`;
-        });
-    }
-
-    addNewDepartmentBtn.addEventListener('click', () => {
-        const newDepartment = prompt('Enter new department name:');
-        if (newDepartment) {
-            const departments = JSON.parse(localStorage.getItem('departments')) || [];
-            if (!departments.includes(newDepartment)) {
-                departments.push(newDepartment);
-                localStorage.setItem('departments', JSON.stringify(departments));
-                loadDepartments();
-                alert('New department added successfully!');
-            } else {
-                alert('This department already exists.');
-            }
-        }
-    });
-
-    function loadTopics() {
-        const topics = JSON.parse(localStorage.getItem('topics')) || [];
-        const topicsList = document.getElementById('topicsList');
-        topicsList.innerHTML = '';
-
-        topics.forEach(topic => {
-            if (!topic || !topic.name) return; // Skip invalid topics
-            
-            const topicElement = document.createElement('div');
-            topicElement.className = 'topic-item';
-            topicElement.innerHTML = `
-                <div class="topic-info">
-                    <span class="topic-name">${topic.name}</span>
-                    <span class="topic-points">(${topic.points} points)</span>
-                </div>
-                <div class="topic-actions">
-                    <button type="button" class="edit-topic-btn" data-topic="${topic.name}">
-                        <i class="fas fa-edit"></i> Edit
-                    </button>
-                    <button type="button" class="delete-topic-btn" data-topic="${topic.name}">
-                        <i class="fas fa-trash"></i> Delete
-                    </button>
-                </div>
-            `;
-            topicsList.appendChild(topicElement);
-        });
-
-        // Add event listeners for edit and delete buttons
-        const deleteButtons = document.querySelectorAll('.delete-topic-btn');
-        const editButtons = document.querySelectorAll('.edit-topic-btn');
-
-        deleteButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const topicName = button.getAttribute('data-topic');
-                deleteTopic(topicName);
-            });
-        });
-
-        editButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const topicName = button.getAttribute('data-topic');
-                openEditTopicModal(topicName);
-            });
-        });
-    }
-
-    function deleteTopic(topicName) {
-        if (!topicName) return; // Guard against undefined topic names
-        
-        if (confirm(`Are you sure you want to delete the topic "${topicName}"?`)) {
-            let topics = JSON.parse(localStorage.getItem('topics')) || [];
-            
-            // Filter out the topic to be deleted
-            topics = topics.filter(topic => topic && topic.name && topic.name !== topicName);
-            
-            // Save the updated topics array
-            localStorage.setItem('topics', JSON.stringify(topics));
-            
-            // Reload the topics list
-            loadTopics();
-            
-            // Update any related worker data
-            const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
-            Object.keys(workerData).forEach(workerName => {
-                if (workerData[workerName].topics) {
-                    workerData[workerName].topics = workerData[workerName].topics.filter(t => t !== topicName);
-                }
-            });
-            localStorage.setItem('workerData', JSON.stringify(workerData));
-        }
-    }
-
-    addTopicForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-
-        const name = document.getElementById('newTopicName').value.trim();
-        const points = parseInt(document.getElementById('newTopicPoints').value);
-
-        if (!name || isNaN(points)) {
-            alert('Please enter valid topic name and points');
-            return;
-        }
-
-        const topics = JSON.parse(localStorage.getItem('topics')) || [];
-
-        // Check if topic already exists
-        if (topics.some(topic => topic && topic.name === name)) {
-            alert('A topic with this name already exists');
-            return;
-        }
-
-        // Add new topic
-        topics.push({ name, points });
-        localStorage.setItem('topics', JSON.stringify(topics));
-
-        // Reset form and reload topics
-        addTopicForm.reset();
-        loadTopics();
-        alert('Topic added successfully!');
-    });
-
-    function openEditTopicModal(topicName) {
-        const topics = JSON.parse(localStorage.getItem('topics')) || [];
-        const topic = topics.find(t => t && t.name === topicName);
-
-        if (!topic) {
-            alert('Topic not found');
-            return;
-        }
-
-        modalContent.innerHTML = `
-            <h3>Edit Topic</h3>
-            <form id="editTopicForm">
-                <div class="form-group">
-                    <label for="editTopicName">Topic Name:</label>
-                    <input type="text" id="editTopicName" value="${topic.name}" required>
-                </div>
-                <div class="form-group">
-                    <label for="editTopicPoints">Points:</label>
-                    <input type="number" id="editTopicPoints" value="${topic.points}" required min="0">
-                </div>
-                <div class="form-actions">
-                    <button type="submit" class="btn-primary">Save Changes</button>
-                    <button type="button" class="btn-secondary" id="cancelEditTopic">Cancel</button>
-                </div>
-            </form>
-        `;
-
-        modal.style.display = 'block';
-
-        const editTopicForm = document.getElementById('editTopicForm');
-        const cancelBtn = document.getElementById('cancelEditTopic');
-
-        editTopicForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            
-            const newName = document.getElementById('editTopicName').value.trim();
-            const newPoints = parseInt(document.getElementById('editTopicPoints').value);
-            
-            if (!newName || isNaN(newPoints)) {
-                alert('Please enter valid topic name and points');
-                return;
-            }
-            
-            // Update topic
-            const index = topics.findIndex(t => t && t.name === topicName);
-            if (index !== -1) {
-                topics[index] = { name: newName, points: newPoints };
-                localStorage.setItem('topics', JSON.stringify(topics));
-                loadTopics();
-                modal.style.display = 'none';
-                alert('Topic updated successfully!');
-            }
-        });
-
-        cancelBtn.addEventListener('click', () => {
-            modal.style.display = 'none';
-        });
-    }
-
-    resetAllActivitiesBtn.addEventListener('click', () => {
-        if (confirm('Are you sure you want to reset all worker activities? This action cannot be undone.')) {
-            const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
-            const columns = JSON.parse(localStorage.getItem('columns')) || [];
-            
-            Object.keys(workerData).forEach(workerName => {
-                columns.forEach(column => {
-                    workerData[workerName][column.name.toLowerCase().replace(/\s+/g, '')] = 0;
-                });
-                workerData[workerName].topicPoints = 0;
-                workerData[workerName].lastSubmission = {};
-                workerData[workerName].activities = [];
-            });
-            
-            localStorage.setItem('workerData', JSON.stringify(workerData));
-            alert('All worker activities have been reset.');
-            loadWorkerActivities();
-        }
-    });
-
-    function loadLeaveApplications() {
-        const leaveApplications = JSON.parse(localStorage.getItem('leaveApplications')) || [];
-        leaveApplicationsBody.innerHTML = '';
-
-        leaveApplications.forEach(application => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${application.workerName}</td>
-                <td>${application.department}</td>
-                <td>${application.startDate}</td>
-                <td>${application.endDate}</td>
-                <td>${application.status}</td>
-                <td>
-                    ${application.status === 'Pending' ? `
-                        <button class="approve-leave-btn" data-id="${application.id}">Approve</button>
-                        <button class="reject-leave-btn" data-id="${application.id}">Reject</button>
-                    ` : ''}
-                    <button class="view-leave-details-btn" data-id="${application.id}">View Details</button>
-                </td>
-            `;
-            leaveApplicationsBody.appendChild(row);
-        });
-
-        // Add event listeners for approve, reject, and view details buttons
-        document.querySelectorAll('.approve-leave-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => approveLeave(e.target.getAttribute('data-id')));
-        });
-
-        document.querySelectorAll('.reject-leave-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => rejectLeave(e.target.getAttribute('data-id')));
-        });
-
-        document.querySelectorAll('.view-leave-details-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => viewLeaveDetails(e.target.getAttribute('data-id')));
-        });
-    }
-
-    function approveLeave(applicationId) {
-        updateLeaveStatus(applicationId, 'Approved');
-    }
-
-    function rejectLeave(applicationId) {
-        updateLeaveStatus(applicationId, 'Rejected');
-    }
-
-    function updateLeaveStatus(applicationId, newStatus) {
-        const leaveApplications = JSON.parse(localStorage.getItem('leaveApplications')) || [];
-        const applicationIndex = leaveApplications.findIndex(app => app.id === applicationId);
-
-        if (applicationIndex !== -1) {
-            leaveApplications[applicationIndex].status = newStatus;
-            localStorage.setItem('leaveApplications', JSON.stringify(leaveApplications));
-            loadLeaveApplications();
-            alert(`Leave application ${newStatus.toLowerCase()}.`);
-        }
-    }
-
-    function viewLeaveDetails(applicationId) {
-        const leaveApplications = JSON.parse(localStorage.getItem('leaveApplications')) || [];
-        const application = leaveApplications.find(app => app.id === applicationId);
-
-        if (application) {
-            modalContent.innerHTML = `
-                <h3>Leave Application Details</h3>
-                <p><strong>Worker Name:</strong> ${application.workerName}</p>
-                <p><strong>Department:</strong> ${application.department}</p>
-                <p><strong>Start Date:</strong> ${application.startDate}</p>
-                <p><strong>End Date:</strong> ${application.endDate}</p>
-                <p><strong>Status:</strong> ${application.status}</p>
-                <p><strong>Reason:</strong> ${application.reason}</p>
-                ${application.document ? `<p><strong>Document:</strong> <a href="${application.document}" target="_blank">View Document</a></p>` : ''}
-                <button id="closeLeaveDetailsBtn">Close</button>
-            `;
-            modal.style.display = 'block';
-
-            document.getElementById('closeLeaveDetailsBtn').addEventListener('click', () => {
-                modal.style.display = 'none';
-            });
-        }
-    }
-
-    applyFiltersBtn.addEventListener('click', () => {
-        const dateFilter = document.getElementById('dateFilter').value;
-        const statusFilter = document.getElementById('statusFilter').value;
-        const departmentFilter = document.getElementById('departmentFilter').value.toLowerCase();
-
-        const leaveApplications = JSON.parse(localStorage.getItem('leaveApplications')) || [];
-        const filteredApplications = leaveApplications.filter(app => {
-            const dateMatch = !dateFilter || app.startDate <= dateFilter && app.endDate >= dateFilter;
-            const statusMatch = !statusFilter || app.status === statusFilter;
-            const departmentMatch = !departmentFilter || app.department.toLowerCase().includes(departmentFilter);
-            return dateMatch && statusMatch && departmentMatch;
-        });
-
-        displayFilteredLeaveApplications(filteredApplications);
-    });
-
-    function displayFilteredLeaveApplications(applications) {
-        leaveApplicationsBody.innerHTML = '';
-        applications.forEach(application => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${application.workerName}</td>
-                <td>${application.department}</td>
-                <td>${application.startDate}</td>
-                <td>${application.endDate}</td>
-                <td>${application.status}</td>
-                <td>
-                    ${application.status === 'Pending' ? `
-                        <button class="approve-leave-btn" data-id="${application.id}">Approve</button>
-                        <button class="reject-leave-btn" data-id="${application.id}">Reject</button>
-                    ` : ''}
-                    <button class="view-leave-details-btn" data-id="${application.id}">View Details</button>
-                </td>
-            `;
-            leaveApplicationsBody.appendChild(row);
-        });
-
-        // Re-add event listeners for the new buttons
-        document.querySelectorAll('.approve-leave-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => approveLeave(e.target.getAttribute('data-id')));
-        });
-
-        document.querySelectorAll('.reject-leave-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => rejectLeave(e.target.getAttribute('data-id')));
-        });
-
-        document.querySelectorAll('.view-leave-details-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => viewLeaveDetails(e.target.getAttribute('data-id')));
-        });
-    }
-
-    function loadColumns() {
-        const columns = JSON.parse(localStorage.getItem('columns')) || [];
-        const columnsList = document.getElementById('columnsList');
-        columnsList.innerHTML = '';
-
-        columns.forEach(column => {
-            const columnElement = document.createElement('div');
-            columnElement.className = 'column-item';
-            columnElement.innerHTML = `
-                <span>${column.name} (${column.department})</span>
-                <button class="delete-column-btn" data-column="${column.name}">Delete</button>
-            `;
-            columnsList.appendChild(columnElement);
-        });
-
-        // Add event listeners for delete buttons
-        document.querySelectorAll('.delete-column-btn').forEach(button => {
-            button.addEventListener('click', (e) => {
-                const columnName = e.target.getAttribute('data-column');
-                deleteColumn(columnName);
-            });
-        });
-
-        // Update department select options
-        const departments = JSON.parse(localStorage.getItem('departments')) || [];
-        const departmentSelect = document.getElementById('newColumnDepartment');
-        departmentSelect.innerHTML = '<option value="all">All Departments</option>';
-        departments.forEach(dept => {
-            departmentSelect.innerHTML += `<option value="${dept}">${dept}</option>`;
-        });
-    }
-
-    function deleteColumn(columnName) {
-        if (confirm(`Are you sure you want to delete the column "${columnName}"?`)) {
-            let columns = JSON.parse(localStorage.getItem('columns')) || [];
-            columns = columns.filter(column => column.name !== columnName);
-            localStorage.setItem('columns', JSON.stringify(columns));
-
-            // Update worker data
-            const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
-            Object.keys(workerData).forEach(workerName => {
-                delete workerData[workerName][columnName.toLowerCase().replace(/\s+/g, '')];
-            });
-            localStorage.setItem('workerData', JSON.stringify(workerData));
-
-            loadColumns();
-            loadWorkerActivities();
-        }
-    }
-
-    addColumnForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const columnName = document.getElementById('newColumnName').value.trim();
-        const department = document.getElementById('newColumnDepartment').value;
-
-        if (!columnName) {
-            alert('Please enter a valid column name');
-            return;
-        }
-
-        const columns = JSON.parse(localStorage.getItem('columns')) || [];
-        if (columns.some(col => col.name.toLowerCase() === columnName.toLowerCase())) {
-            alert('A column with this name already exists');
-            return;
-        }
-
-        columns.push({ name: columnName, department });
-        localStorage.setItem('columns', JSON.stringify(columns));
-
-        // Initialize the new column for all workers
-        const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
-        Object.keys(workerData).forEach(workerName => {
-            if (department === 'all' || workerData[workerName].department === department) {
-                workerData[workerName][columnName.toLowerCase().replace(/\s+/g, '')] = 0;
-            }
-        });
-        localStorage.setItem('workerData', JSON.stringify(workerData));
-
-        addColumnForm.reset();
-        loadColumns();
-        loadWorkerActivities();
-        alert('New column added successfully!');
-    });
 
     function openViewCommentsModal(workerName) {
         const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
@@ -908,43 +430,434 @@ document.addEventListener('DOMContentLoaded', () => {
 
         modalContent.innerHTML = `
             <h3>Comments for ${workerName}</h3>
-            <div id="commentsContainer"></div>
-            <button id="closeCommentsBtn">Close</button>
+            ${comments.length > 0 ? `
+                <ul>
+                    ${comments.map(comment => `
+                        <li>
+                            <p>${comment.text}</p>
+                            <small>${new Date(comment.timestamp).toLocaleString()}</small>
+                        </li>
+                    `).join('')}
+                </ul>
+            ` : '<p>No comments yet.</p>'}
+            <button id="closeCommentsModal">Close</button>
         `;
-
-        const commentsContainer = document.getElementById('commentsContainer');
-        comments.forEach(comment => {
-            const commentElement = document.createElement('div');
-            commentElement.className = 'comment';
-            commentElement.innerHTML = `
-                <p>${comment.text}</p>
-                <small>${new Date(comment.timestamp).toLocaleString()}</small>
-                ${comment.isNew ? '<span class="new-comment-badge">New</span>' : ''}
-            `;
-            commentsContainer.appendChild(commentElement);
-        });
-
         modal.style.display = 'block';
 
-        document.getElementById('closeCommentsBtn').addEventListener('click', () => {
-            // Mark all comments as read
-            workerData[workerName].comments.forEach(comment => {
-                comment.isNew = false;
-            });
-            localStorage.setItem('workerData', JSON.stringify(workerData));
+        document.getElementById('closeCommentsModal').addEventListener('click', () => {
             modal.style.display = 'none';
         });
     }
 
-    // Close modal when clicking on the close button or outside the modal
-    closeModal.addEventListener('click', () => {
-        modal.style.display = 'none';
+    // Add new worker
+    addWorkerForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = document.getElementById('newWorkerName').value;
+        const username = document.getElementById('newWorkerUsername').value;
+        const password = document.getElementById('newWorkerPassword').value;
+        const department = document.getElementById('newWorkerDepartment').value;
+        const photoInput = document.getElementById('newWorkerPhoto');
+
+        const worker = { name, username, password, department };
+
+        if (photoInput.files.length > 0) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                worker.photo = event.target.result;
+                addWorker(worker);
+            };
+            reader.readAsDataURL(photoInput.files[0]);
+        } else {
+            addWorker(worker);
+        }
     });
 
+    function addWorker(worker) {
+        let workers = JSON.parse(localStorage.getItem('workers')) || [];
+        workers.push(worker);
+        localStorage.setItem('workers', JSON.stringify(workers));
+        loadWorkerActivities();
+        addWorkerForm.reset();
+        alert('Worker added successfully.');
+    }
+
+    // Load departments
+    function loadDepartments() {
+        const departments = JSON.parse(localStorage.getItem('departments')) || ['IT', 'HR', 'Finance'];
+        const departmentSelects = document.querySelectorAll('select[id$="Department"]');
+        departmentSelects.forEach(select => {
+            select.innerHTML = departments.map(dept => `<option value="${dept}">${dept}</option>`).join('');
+        });
+    }
+
+    // Add new department
+    addNewDepartmentBtn.addEventListener('click', () => {
+        const newDepartment = prompt('Enter new department name:');
+        if (newDepartment) {
+            let departments = JSON.parse(localStorage.getItem('departments')) || ['IT', 'HR', 'Finance'];
+            if (!departments.includes(newDepartment)) {
+                departments.push(newDepartment);
+                localStorage.setItem('departments', JSON.stringify(departments));
+                loadDepartments();
+                alert('New department added successfully.');
+            } else {
+                alert('Department already exists.');
+            }
+        }
+    });
+
+   // DOM Elements
+document.addEventListener('DOMContentLoaded', () => {
+    const topicsList = document.getElementById('topicsList');
+    const addTopicForm = document.getElementById('addTopicForm');
+
+    // Load and display topics
+    function loadTopics() {
+        const topics = JSON.parse(localStorage.getItem('topics')) || [];
+        topicsList.innerHTML = '';
+
+        if (topics.length === 0) {
+            topicsList.innerHTML = '<p>No topics available. Add your first topic below.</p>';
+            return;
+        }
+
+        topics.forEach(topic => {
+            const topicElement = document.createElement('div');
+            topicElement.className = 'topic-item';
+            topicElement.innerHTML = `
+                <div class="topic-info">
+                    <span class="topic-name">${topic.name || 'Unnamed Topic'}</span>
+                    <span class="topic-points">${topic.points || 0} points</span>
+                    <span class="topic-department">${topic.department || 'All Departments'}</span>
+                </div>
+                <button class="delete-topic-btn" data-topic-id="${topic.id}" aria-label="Delete ${topic.name}">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `;
+            topicsList.appendChild(topicElement);
+
+            // Add click event listener for delete button
+            const deleteBtn = topicElement.querySelector('.delete-topic-btn');
+            deleteBtn.addEventListener('click', () => deleteTopic(topic.id));
+        });
+    }
+
+    // Add new topic
+    function addTopic(topicData) {
+        const topics = JSON.parse(localStorage.getItem('topics')) || [];
+        const newTopic = {
+            id: Date.now().toString(),
+            name: topicData.name,
+            points: parseInt(topicData.points),
+            department: topicData.department
+        };
+
+        topics.push(newTopic);
+        localStorage.setItem('topics', JSON.stringify(topics));
+        loadTopics();
+        showNotification('Topic added successfully', 'success');
+    }
+
+    // Delete topic
+    function deleteTopic(topicId) {
+        if (!confirm('Are you sure you want to delete this topic? This action cannot be undone.')) {
+            return;
+        }
+
+        try {
+            // Get current topics
+            let topics = JSON.parse(localStorage.getItem('topics')) || [];
+            
+            // Find topic to be deleted
+            const topicToDelete = topics.find(t => t.id === topicId);
+            if (!topicToDelete) {
+                throw new Error('Topic not found');
+            }
+
+            // Remove topic from array
+            topics = topics.filter(t => t.id !== topicId);
+            
+            // Update localStorage
+            localStorage.setItem('topics', JSON.stringify(topics));
+
+            // Update worker data to remove topic references
+            let workerData = JSON.parse(localStorage.getItem('workerData')) || {};
+            
+            // Remove topic points from all workers
+            Object.keys(workerData).forEach(workerName => {
+                const worker = workerData[workerName];
+                if (worker.activities) {
+                    // Remove topic from activities
+                    worker.activities = worker.activities.filter(activity => 
+                        !activity.topics.includes(topicToDelete.name)
+                    );
+
+                    // Recalculate total points
+                    worker.topicPoints = worker.activities.reduce((total, activity) => {
+                        const activityTopicPoints = activity.topics.reduce((points, topicName) => {
+                            const topic = topics.find(t => t.name === topicName);
+                            return points + (topic ? topic.points : 0);
+                        }, 0);
+                        return total + activityTopicPoints;
+                    }, 0);
+                }
+            });
+
+            localStorage.setItem('workerData', JSON.stringify(workerData));
+            
+            // Refresh the topics list
+            loadTopics();
+            showNotification('Topic deleted successfully', 'success');
+        } catch (error) {
+            console.error('Error deleting topic:', error);
+            showNotification('Failed to delete topic. Please try again.', 'error');
+        }
+    }
+
+    // Initialize default topics if none exist
+    function initializeDefaultTopics() {
+        const topics = JSON.parse(localStorage.getItem('topics')) || [];
+        if (topics.length === 0) {
+            const defaultTopics = [
+                {
+                    id: 'default-1',
+                    name: 'Quality Check',
+                    points: 5,
+                    department: 'all'
+                },
+                {
+                    id: 'default-2',
+                    name: 'Time Management',
+                    points: 3,
+                    department: 'all'
+                }
+            ];
+            localStorage.setItem('topics', JSON.stringify(defaultTopics));
+        }
+    }
+
+    // Show notification
+    function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+
+    // Event Listeners
+    addTopicForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const topicData = {
+            name: document.getElementById('newTopicName').value,
+            points: document.getElementById('newTopicPoints').value,
+            department: document.getElementById('topicDepartment').value
+        };
+        addTopic(topicData);
+        e.target.reset();
+    });
+
+    // Initialize
+    initializeDefaultTopics();
+    loadTopics();
+});
+    // Reset all worker activities
+    resetAllActivitiesBtn.addEventListener('click', () => {
+        if (confirm('Are you sure you want to reset all worker activities? This action cannot be undone.')) {
+            const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
+            const columns = JSON.parse(localStorage.getItem('columns')) || [];
+            
+            for (let workerName in workerData) {
+                columns.forEach(column => {
+                    workerData[workerName][column.name.toLowerCase().replace(/\s+/g, '')] = 0;
+                });
+                workerData[workerName].topicPoints = 0;
+                workerData[workerName].lastSubmission = {};
+                workerData[workerName].activities = [];
+            }
+            
+            localStorage.setItem('workerData', JSON.stringify(workerData));
+            loadWorkerActivities();
+            alert('All worker activities have been reset.');
+        }
+    });
+
+    // Load leave applications
+    function loadLeaveApplications() {
+        const leaveRequests = JSON.parse(localStorage.getItem('leaveRequests')) || [];
+        leaveApplicationsBody.innerHTML = '';
+        recentLeaveRequests.innerHTML = '<h3>Recent Leave Requests</h3>';
+
+        const sortedRequests = leaveRequests.sort((a, b) => new Date(b.requestDate) - new Date(a.requestDate));
+
+        sortedRequests.forEach((request, index) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${request.workerName}</td>
+                <td>${request.department}</td>
+                <td>${request.startDate}</td>
+                <td>${request.endDate}</td>
+                <td>${request.status}</td>
+                <td>
+                    ${request.status === 'Pending' ? `
+                        <button class="approve-btn" data-id="${request.id}">Approve</button>
+                        <button class="reject-btn" data-id="${request.id}">Reject</button>
+                    ` : ''}
+                </td>
+            `;
+            leaveApplicationsBody.appendChild(row);
+
+            // Add to recent leave requests
+            if (index < 5) {
+                const recentRequestElement = document.createElement('div');
+                recentRequestElement.innerHTML = `
+                    <p><strong>${request.workerName}</strong> - ${request.leaveType}</p>
+                    <p>From: ${request.startDate} To: ${request.endDate}</p>
+                    <p>Status: ${request.status}</p>
+                `;
+                recentLeaveRequests.appendChild(recentRequestElement);
+            }
+        });
+    }
+
+    // Handle leave application actions
+    leaveApplicationsBody.addEventListener('click', (e) => {
+        if (e.target.classList.contains('approve-btn') || e.target.classList.contains('reject-btn')) {
+            const requestId = e.target.getAttribute('data-id');
+            const action = e.target.classList.contains('approve-btn') ? 'Approved' : 'Rejected';
+            updateLeaveRequest(requestId, action);
+        }
+    });
+
+    function updateLeaveRequest(requestId, status) {
+        let leaveRequests = JSON.parse(localStorage.getItem('leaveRequests')) || [];
+        leaveRequests = leaveRequests.map(request => {
+            if (request.id === requestId) {
+                return { ...request, status: status };
+            }
+            return request;
+        });
+        localStorage.setItem('leaveRequests', JSON.stringify(leaveRequests));
+        loadLeaveApplications();
+        alert(`Leave request ${status.toLowerCase()}.`);
+    }
+
+    // Apply filters to leave applications
+    applyFiltersBtn.addEventListener('click', () => {
+        const dateFilter = document.getElementById('dateFilter').value;
+        const statusFilter = document.getElementById('statusFilter').value;
+        const departmentFilter = document.getElementById('departmentFilter').value.toLowerCase();
+
+        let leaveRequests = JSON.parse(localStorage.getItem('leaveRequests')) || [];
+        const filteredRequests = leaveRequests.filter(request => {
+            const dateMatch = !dateFilter || (request.startDate <= dateFilter && request.endDate >= dateFilter);
+            const statusMatch = !statusFilter || request.status === statusFilter;
+            const departmentMatch = !departmentFilter || request.department.toLowerCase().includes(departmentFilter);
+            return dateMatch && statusMatch && departmentMatch;
+        });
+
+        displayFilteredLeaveRequests(filteredRequests);
+    });
+
+    function displayFilteredLeaveRequests(requests) {
+        leaveApplicationsBody.innerHTML = '';
+        requests.forEach(request => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${request.workerName}</td>
+                <td>${request.department}</td>
+                <td>${request.startDate}</td>
+                <td>${request.endDate}</td>
+                <td>${request.status}</td>
+                <td>
+                    ${request.status === 'Pending' ? `
+                        <button class="approve-btn" data-id="${request.id}">Approve</button>
+                        <button class="reject-btn" data-id="${request.id}">Reject</button>
+                    ` : ''}
+                </td>
+            `;
+            leaveApplicationsBody.appendChild(row);
+        });
+    }
+
+    // Load columns
+    function loadColumns() {
+        const columns = JSON.parse(localStorage.getItem('columns')) || [];
+        const columnsList = document.getElementById('columnsList');
+        columnsList.innerHTML = '';
+        columns.forEach(column => {
+            const columnElement = document.createElement('div');
+            columnElement.innerHTML = `
+                <span>${column.name} - ${column.department}</span>
+                <button class="delete-column" data-name="${column.name}">Delete</button>
+            `;
+            columnsList.appendChild(columnElement);
+        });
+    }
+
+    // Add new column
+    addColumnForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = document.getElementById('newColumnName').value;
+        const department = document.getElementById('newColumnDepartment').value;
+        let columns = JSON.parse(localStorage.getItem('columns')) || [];
+        columns.push({ name, department });
+        localStorage.setItem('columns', JSON.stringify(columns));
+        loadColumns();
+        addColumnForm.reset();
+        alert('Column added successfully.');
+    });
+
+    // Delete column
+    document.getElementById('columnsList').addEventListener('click', (e) => {
+        if (e.target.classList.contains('delete-column')) {
+            const columnName = e.target.getAttribute('data-name');
+            if (confirm(`Are you sure you want to delete the column "${columnName}"?`)) {
+                let columns = JSON.parse(localStorage.getItem('columns')) || [];
+                columns = columns.filter(c => c.name !== columnName);
+                localStorage.setItem('columns', JSON.stringify(columns));
+                loadColumns();
+                alert('Column deleted successfully.');
+            }
+        }
+    });
+
+    // Load all replies
+    function loadAllReplies() {
+        const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
+        const repliesList = document.getElementById('repliesList');
+        repliesList.innerHTML = '';
+
+        for (const [workerName, data] of Object.entries(workerData)) {
+            if (data.comments && data.comments.length > 0) {
+                const workerReplies = document.createElement('div');
+                workerReplies.innerHTML = `<h3>${workerName}'s Comments</h3>`;
+                data.comments.forEach(comment => {
+                    const commentElement = document.createElement('div');
+                    commentElement.innerHTML = `
+                        <p>${comment.text}</p>
+                        <small>${new Date(comment.timestamp).toLocaleString()}</small>
+                    `;
+                    workerReplies.appendChild(commentElement);
+                });
+                repliesList.appendChild(workerReplies);
+            }
+        }
+    }
+
+    // Close modal when clicking outside
     window.addEventListener('click', (e) => {
         if (e.target === modal) {
             modal.style.display = 'none';
         }
+    });
+
+    // Close modal when clicking the close button
+    closeModal.addEventListener('click', () => {
+        modal.style.display = 'none';
     });
 
     // Initial load
