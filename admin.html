@@ -93,6 +93,12 @@
                         <label for="newTopicPoints">Points:</label>
                         <input type="number" id="newTopicPoints" placeholder="Enter points" required min="0">
                     </div>
+                    <div class="form-group">
+                        <label for="topicDepartment">Department:</label>
+                        <select id="topicDepartment" required>
+                            <option value="all">All Departments</option>
+                        </select>
+                    </div>
                     <button type="submit" class="btn-primary">Add Topic</button>
                 </form>
             </div>
@@ -109,6 +115,7 @@
 
             <div id="leaveManagementSection" class="dashboard-section hidden">
                 <h2>Leave Management</h2>
+                <div id="recentLeaveRequests"></div>
                 <div id="leaveFilters">
                     <label for="dateFilter">Date:</label>
                     <input type="date" id="dateFilter">
@@ -156,7 +163,7 @@
 
     <div id="modal" class="modal">
         <div class="modal-content">
-            <span class="close" aria-label="Close">&times;</span>
+            <span class="close" >&times;</span>
             <div id="modalContent"></div>
         </div>
     </div>
