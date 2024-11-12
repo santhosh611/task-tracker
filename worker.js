@@ -110,7 +110,148 @@ document.addEventListener('DOMContentLoaded', () => {
                 dynamicInputs.appendChild(inputGroup);
             }
         });
+// Add this function to properly load topics
+function loadTopics() {
+    const topics = JSON.parse(localStorage.getItem('topics')) || [];
+    const topicList = document.getElementById('topicList');
+    
+    if (!topicList) return;
+    
+    topicList.innerHTML = '<h4>Available Topics</h4>';
+    
+    // Filter topics for current worker's department
+    const workerDepartment = currentWorker.department;
+    const availableTopics = topics.filter(topic => 
+        !topic.department || // If no department specified
+        topic.department === 'all' || // If topic is for all departments
+        topic.department === workerDepartment // If topic matches worker's department
+    );
 
+    if (availableTopics.length === 0) {
+        topicList.innerHTML += '<p>No topics available</p>';
+        return;
+    }
+
+    availableTopics.forEach(topic => {
+        const topicTag = document.createElement('label');
+        topicTag.className = 'topic-tag';
+        topicTag.innerHTML = `
+            <input type="checkbox" name="topic" value="${topic.name}">
+            <span>${topic.name} (${topic.points} points)</span>
+        `;
+        topicList.appendChild(topicTag);
+    });
+}
+
+// Update the loadWorkerDashboard function
+function loadWorkerDashboard() {
+    if (!currentWorker) return;
+
+    // Update sidebar info
+    sidebarProfileImage.src = currentWorker.photo || '/placeholder.svg?height=100&width=100&text=' + currentWorker.name;
+    sidebarProfileImage.alt = `${currentWorker.name}'s profile picture`;
+    sidebarWorkerName.textContent = currentWorker.name;
+    sidebarWorkerDepartment.textContent = currentWorker.department;
+
+    // Load all necessary data
+    loadHarvestForm();
+    loadTopics(); // Add this line to load topics
+    loadComments();
+    updateLeaveRequestNotification();
+    updateScoreboard();
+    showDashboardContent();
+}
+
+// Update the harvestForm submit handler
+harvestForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    const harvestData = {};
+    const formData = new FormData(harvestForm);
+    let hasData = false;
+
+    // Get harvest values
+    for (const [name, value] of formData.entries()) {
+        if (!name.includes('topic') && value !== '') {
+            harvestData[name] = parseInt(value) || 0;
+            if (parseInt(value) > 0) hasData = true;
+        }
+    }
+
+    // Get selected topics
+    const selectedTopics = Array.from(document.querySelectorAll('input[name="topic"]:checked'))
+        .map(checkbox => checkbox.value);
+    
+    if (selectedTopics.length > 0) hasData = true;
+
+    if (!hasData) {
+        alert('Please enter at least one harvest value or select a topic.');
+        return;
+    }
+
+    // Update worker data
+    const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
+    if (!workerData[currentWorker.name]) {
+        workerData[currentWorker.name] = {
+            activities: [],
+            topicPoints: 0
+        };
+    }
+
+    // Calculate topic points
+    const topics = JSON.parse(localStorage.getItem('topics')) || [];
+    const topicPoints = selectedTopics.reduce((total, topicName) => {
+        const topic = topics.find(t => t.name === topicName);
+        return total + (topic ? topic.points : 0);
+    }, 0);
+
+    // Update total points
+    workerData[currentWorker.name].topicPoints = 
+        (workerData[currentWorker.name].topicPoints || 0) + topicPoints;
+
+    // Add activity record
+    workerData[currentWorker.name].activities.push({
+        timestamp: new Date().toISOString(),
+        harvest: harvestData,
+        topics: selectedTopics,
+        points: topicPoints + Object.values(harvestData).reduce((a, b) => a + b, 0)
+    });
+
+    localStorage.setItem('workerData', JSON.stringify(workerData));
+    alert('Harvest submitted successfully!');
+    harvestForm.reset();
+    updateScoreboard();
+});
+
+// Add sidebar toggle functionality
+const sidebarToggle = document.getElementById('sidebarToggle');
+const sidebar = document.querySelector('.sidebar');
+const mainContent = document.querySelector('.main-content');
+
+sidebarToggle.addEventListener('click', () => {
+    sidebar.classList.toggle('collapsed');
+    mainContent.classList.toggle('expanded');
+});
+
+// Close sidebar when clicking outside on mobile
+document.addEventListener('click', (e) => {
+    if (window.innerWidth <= 768) {
+        if (!sidebar.contains(e.target) && !sidebarToggle.contains(e.target)) {
+            sidebar.classList.remove('active');
+        }
+    }
+});
+
+// Handle window resize
+window.addEventListener('resize', () => {
+    if (window.innerWidth > 768) {
+        sidebar.classList.remove('collapsed');
+        mainContent.classList.remove('expanded');
+    } else {
+        sidebar.classList.add('collapsed');
+        mainContent.classList.add('expanded');
+    }
+});
         // Load topics
         topicList.innerHTML = '<h4>Available Topics</h4>';
         topics.forEach(topic => {
