@@ -1613,13 +1613,13 @@ body {
 /* Responsive Styles */
 @media screen and (max-width: 1200px) {
     .worker-grid {
-        grid-template-columns: repeat(20, 1fr);
+        grid-template-columns: repeat(10, 1fr);
     }
 }
 
 @media screen and (max-width: 992px) {
     .worker-grid {
-        grid-template-columns: repeat(20, 1fr);
+        grid-template-columns: repeat(10, 1fr);
     }
 }
 
@@ -1642,7 +1642,7 @@ body {
     }
     
     .worker-grid {
-        grid-template-columns: repeat(12, 1fr);
+        grid-template-columns: repeat(4, 1fr);
         gap: 15px;
         padding: 15px;
     }
@@ -1655,7 +1655,7 @@ body {
 
 @media screen and (max-width: 480px) {
     .worker-grid {
-        grid-template-columns: repeat(12, 1fr);
+        grid-template-columns: repeat(4, 1fr);
     }
     
     .main-content {
