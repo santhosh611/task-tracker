@@ -1613,13 +1613,13 @@ body {
 /* Responsive Styles */
 @media screen and (max-width: 1200px) {
     .worker-grid {
-        grid-template-columns: repeat(20, 1fr);
+        grid-template-columns: repeat(10, 1fr);
     }
 }
 
 @media screen and (max-width: 992px) {
     .worker-grid {
-        grid-template-columns: repeat(20, 1fr);
+        grid-template-columns: repeat(10, 1fr);
     }
 }
 
@@ -1643,13 +1643,13 @@ body {
     
     .worker-grid {
         grid-template-columns: repeat(4, 1fr);
-        gap: 12px;
-        padding: 12px;
+        gap: 5px;
+        padding:5px;
     }
     
     .worker-photo {
-        width: 60px;
-        height: 60px;
+        width: 50px;
+        height: 50px;
     }
 }
 
@@ -1659,7 +1659,7 @@ body {
     }
     
     .main-content {
-        padding: 45px 10px 10px 10px;
+        padding: 8px 8px 8px 10px;
     }
 }
 
