@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flower Harvest Tracker</title>
+    <title>Task Tracker</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 
         * {
             margin: 0;
@@ -15,16 +15,27 @@
         }
 
         body {
-            font-family: 'Quicksand', sans-serif;
-            background: #1a1a2e;
+            font-family: 'Inter', sans-serif;
+            background: #0F172A;
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             overflow: hidden;
-            color: #fff;
         }
-
+        .banner-text {
+            width: 100%;
+            height: 60px;
+            background: linear-gradient(90deg, #3B82F6, #2DD4BF);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 2rem 0;
+            font-size: 2rem;
+            font-weight: 600;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
         .container {
             max-width: 1200px;
             margin: 0 auto;
@@ -35,228 +46,230 @@
         }
 
         .glass-panel {
-            background: rgba(255, 255, 255, 0.1);
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-            -webkit-backdrop-filter: blur(4px);
-            backdrop-filter: blur(4px);
-            ;
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.18);
+            background: rgba(255, 255, 255, 0.03);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            -webkit-background-clip: padding-box;
+            background-clip: padding-box;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
             padding: 3rem;
-            transform: translateY(50px);
-            opacity: 0;
-            animation: slideUp 1s ease-out forwards;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -50%;
+            width: 200%;
+            height: 100%;
+            background: linear-gradient(
+                to right,
+                transparent,
+                rgba(255, 255, 255, 0.1),
+                transparent
+            );
+            transform: rotate(45deg);
+            animation: shine 3s infinite;
+        }
+
+        @keyframes shine {
+            0% { transform: translateX(-50%) rotate(45deg); }
+            100% { transform: translateX(150%) rotate(45deg); }
+        }
+
+        .logo {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 2rem;
+            position: relative;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .logo-shape {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #3B82F6, #2DD4BF);
+            -webkit-clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            animation: rotate 10s linear infinite;
+        }
+
+        .logo-inner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60%;
+            height: 60%;
+            background: #0F172A;
+            -webkit-clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
         }
 
         h1 {
             font-size: 3.5rem;
-            color: #ff6b6b;
+            color: #fff;
             margin-bottom: 1rem;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(135deg, #3B82F6, #2DD4BF);
+            -webkit-background-clip: text;
+            background-clip: padding-box;
+            -webkit-text-fill-color: transparent;
+            animation: fadeIn 1s ease-out;
         }
 
         .subtitle {
             font-size: 1.2rem;
-            color: #4ecdc4;
+            color: #94A3B8;
             margin-bottom: 3rem;
-            opacity: 0.8;
+            animation: fadeIn 1s ease-out 0.3s backwards;
         }
 
         .button-container {
             display: flex;
             justify-content: center;
             gap: 2rem;
-            flex-wrap: wrap;
+            animation: fadeIn 1s ease-out 0.6s backwards;
         }
 
         .button {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
             padding: 1rem 2rem;
             font-size: 1.1rem;
             text-decoration: none;
-            color: #ffffff;
-            background-color: rgba(255, 255, 255, 0.1);
-            border-radius: 50px;
+            color: #fff;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 12px;
             transition: all 0.3s ease;
-            border: 2px solid rgba(255, 255, 255, 0.5);
-            -webkit-backdrop-filter: blur(4px);
-            backdrop-filter: blur(5px);
             position: relative;
             overflow: hidden;
-        }
-
-        .button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(
-                120deg,
-                transparent,
-                rgba(255, 255, 255, 0.4),
-                transparent
-            );
-            transition: all 0.5s;
-        }
-
-        .button:hover::before {
-            left: 100%;
         }
 
         .button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
-            background-color: rgba(255, 255, 255, 0.2);
-        }
-
-        .button:active {
-            transform: translateY(-1px);
+            background: rgba(59, 130, 246, 0.2);
+            transform: translateY(-2px);
         }
 
         .button i {
-            margin-right: 0.5rem;
+            margin-right: 0.75rem;
+            font-size: 1.2rem;
         }
 
-        .flower-container {
-            position: relative;
-            width: 150px;
-            height: 150px;
-            margin: 0 auto 2rem;
-        }
-
-        .flower {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%23ff6b6b' d='M50 0 C60 20 80 20 100 10 C80 30 80 50 100 90 C70 80 30 80 0 90 C20 50 20 30 0 10 C20 20 40 20 50 0'/%3E%3Ccircle fill='%234ecdc4' cx='50' cy='50' r='15'/%3E%3C/svg%3E");
-            background-size: contain;
-            animation: flowerSpin 20s linear infinite;
-        }
-
-        .petal {
-            position: absolute;
-            width: 60px;
-            height: 60px;
-            background-color: #ff6b6b;
-            border-radius: 50%;
-            opacity: 0.7;
-        }
-
-        .petal:nth-child(1) { top: 0; left: 45px; }
-        .petal:nth-child(2) { top: 45px; right: 0; }
-        .petal:nth-child(3) { bottom: 0; left: 45px; }
-        .petal:nth-child(4) { top: 45px; left: 0; }
-
-        .floating-leaves {
+        .geometric-shapes {
             position: fixed;
-            width: 100%;
-            height: 100%;
             top: 0;
             left: 0;
-            overflow: hidden;
-            z-index: 0;
+            width: 100%;
+            height: 100%;
             pointer-events: none;
+            z-index: 0;
         }
 
-        .leaf {
+        .shape {
             position: absolute;
-            width: 40px;
-            height: 40px;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%234ecdc4' d='M50 0 C60 40 100 50 100 100 C50 100 0 100 0 100 C0 50 40 40 50 0'/%3E%3C/svg%3E");
-            background-size: contain;
-            opacity: 0.5;
-            animation: float 15s infinite;
-        }
-
-        @keyframes flowerSpin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            background: linear-gradient(135deg, #3B82F6, #2DD4BF);
+            opacity: 0.1;
+            animation: floatShape 20s linear infinite;
         }
 
         @keyframes float {
-            0%, 100% { transform: translateY(-100%) rotate(0deg); opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
         }
 
-        @keyframes slideUp {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes floatShape {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            100% { transform: translate(var(--tx), var(--ty)) rotate(360deg); }
         }
 
         @media (max-width: 768px) {
-            h1 {
-                font-size: 2.5rem;
-            }
-            .subtitle {
-                font-size: 1rem;
-            }
-            .button {
-                width: 100%;
-                margin-bottom: 1rem;
-            }
+            .container { padding: 1rem; }
+            h1 { font-size: 2.5rem; }
+            .button-container { flex-direction: column; }
+            .button { width: 100%; }
+            .glass-panel { padding: 2rem; }
+        }
+
+        /* Fallback for browsers that don't support backdrop-filter */
+        @supports not (backdrop-filter: blur(10px)) {
             .glass-panel {
-                padding: 2rem;
+                background: rgba(255, 255, 255, 0.1);
             }
         }
     </style>
 </head>
 <body>
-    <div class="floating-leaves" id="floatingLeaves"></div>
+    <div class="geometric-shapes" id="shapes"></div>
     <div class="container">
         <div class="glass-panel">
-            <div class="flower-container">
-                <div class="flower"></div>
-                <div class="petal"></div>
-                <div class="petal"></div>
-                <div class="petal"></div>
-                <div class="petal"></div>
+            <div class="logo">
+                <div class="logo-shape"></div>
+                <div class="logo-inner"></div>
             </div>
-            <h1>Flower Harvest Tracker</h1>
-            <p class="subtitle">Track tasks, boost productivity.</p>
+            <!-- Add Task Tracker text in the banner -->
+            <div class="banner-text">Task Tracker</div>
+            <p class="subtitle">Streamline your workflow, maximize productivity</p>
             <div class="button-container">
-                <a href="worker.html" class="button">
-                    <i class="fas fa-users"></i>Worker login
+                <a href="user-dashboard.html" class="button">
+                    <i class="fas fa-user"></i>User Dashboard
                 </a>
-                <a href="admin.html" class="button">
-                    <i class="fas fa-user-cog"></i>Admin login
+                <a href="manager-portal.html" class="button">
+                    <i class="fas fa-user-tie"></i>Manager Portal
                 </a>
             </div>
         </div>
     </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const floatingLeaves = document.getElementById('floatingLeaves');
-            const numberOfLeaves = 20;
+            const shapes = document.getElementById('shapes');
+            const numberOfShapes = 15;
 
-            for (let i = 0; i < numberOfLeaves; i++) {
-                createLeaf();
+            for (let i = 0; i < numberOfShapes; i++) {
+                createShape();
             }
 
-            function createLeaf() {
-                const leaf = document.createElement('div');
-                leaf.classList.add('leaf');
+            function createShape() {
+                const shape = document.createElement('div');
+                shape.classList.add('shape');
                 
-                const startPositionLeft = Math.random() * 100;
-                const animationDuration = 15 + Math.random() * 15;
-                const animationDelay = Math.random() * 15;
-                const scale = 0.5 + Math.random() * 0.5;
-
-                leaf.style.left = `${startPositionLeft}%`;
-                leaf.style.animationDuration = `${animationDuration}s`;
-                leaf.style.animationDelay = `${animationDelay}s`;
-                leaf.style.transform = `scale(${scale})`;
-
-                floatingLeaves.appendChild(leaf);
-
-                leaf.addEventListener('animationiteration', () => {
-                    leaf.style.left = `${Math.random() * 100}%`;
-                });
+                const size = 20 + Math.random() * 40;
+                shape.style.width = `${size}px`;
+                shape.style.height = `${size}px`;
+                
+                shape.style.left = `${Math.random() * 100}%`;
+                shape.style.top = `${Math.random() * 100}%`;
+                
+                const tx = -50 + Math.random() * 100;
+                const ty = -50 + Math.random() * 100;
+                shape.style.setProperty('--tx', `${tx}%`);
+                shape.style.setProperty('--ty', `${ty}%`);
+                
+                const shapes = [
+                    'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
+                    'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
+                    'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)'
+                ];
+                shape.style.clipPath = shapes[Math.floor(Math.random() * shapes.length)];
+                shape.style.webkitClipPath = shape.style.clipPath;
+                
+                shape.style.animationDuration = `${20 + Math.random() * 20}s`;
+                
+                shapes.appendChild(shape);
             }
         });
     </script>
