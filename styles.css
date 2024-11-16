@@ -1644,12 +1644,12 @@ body {
     .worker-grid {
         grid-template-columns: repeat(4, 1fr);
         gap: 5px;
-        padding:5px;
+        padding:8px;
     }
     
     .worker-photo {
-        width: 50px;
-        height: 50px;
+        width: 70px;
+        height: 70px;
     }
 }
 
@@ -1659,7 +1659,7 @@ body {
     }
     
     .main-content {
-        padding: 8px 8px 8px 10px;
+        padding: 8px 8px 8px 8px;
     }
 }
 
