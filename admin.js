@@ -481,16 +481,31 @@ document.addEventListener('DOMContentLoaded', () => {
             reader.onload({ target: { result: null } });
         }
     });
+    
     function loadDepartments() {
         const departments = JSON.parse(localStorage.getItem('departments')) || [];
-        const departmentSelect = document.getElementById('newWorkerDepartment');
-        departmentSelect.innerHTML = '<option value="">Select Department</option>';
-        departments.forEach(dept => {
-            departmentSelect.innerHTML += `<option value="${dept}">${dept}</option>`;
-        });
+        const workerDepartmentSelect = document.getElementById('newWorkerDepartment');
+        const topicDepartmentSelect = document.getElementById('newTopicDepartment');
+
+        // Populate worker department select
+        if (workerDepartmentSelect) {
+            workerDepartmentSelect.innerHTML = '<option value="">Select Department</option>';
+            departments.forEach(dept => {
+                workerDepartmentSelect.innerHTML += `<option value="${dept}">${dept}</option>`;
+            });
+        }
+
+        // Populate topic department select
+        if (topicDepartmentSelect) {
+            topicDepartmentSelect.innerHTML = '<option value="">Select Department</option>';
+            topicDepartmentSelect.innerHTML += '<option value="all">All Departments</option>';
+            departments.forEach(dept => {
+                topicDepartmentSelect.innerHTML += `<option value="${dept}">${dept}</option>`;
+            });
+        }
     }
-    
-    document.getElementById('addNewDepartmentBtn').addEventListener('click', () => {
+
+    addNewDepartmentBtn.addEventListener('click', () => {
         const newDepartment = prompt('Enter new department name:');
         if (newDepartment) {
             const departments = JSON.parse(localStorage.getItem('departments')) || [];
@@ -504,6 +519,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
+
 // Update the loadTopics function
 function loadTopics() {
     const topics = JSON.parse(localStorage.getItem('topics')) || [];
