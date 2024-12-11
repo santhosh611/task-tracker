@@ -80,10 +80,8 @@
                     <button type="submit">Add Worker</button>
                 </form>
             </div>
-
             <div id="manageTopicsSection" class="dashboard-section hidden">
                 <h2>Manage Topics</h2>
-                <div id="topicsList" class="topics-list"></div>
                 <form id="addTopicForm" class="topic-form">
                     <div class="form-group">
                         <label for="newTopicName">Topic Name:</label>
@@ -93,10 +91,16 @@
                         <label for="newTopicPoints">Points:</label>
                         <input type="number" id="newTopicPoints" placeholder="Enter points" required min="0">
                     </div>
+                    <div class="form-group">
+                        <label for="newTopicDepartment">Department:</label>
+                        <select id="newTopicDepartment" required>
+                            <option value="">Select Department</option>
+                        </select>
+                    </div>
                     <button type="submit" class="btn-primary">Add Topic</button>
                 </form>
+                <div id="topicsList" class="topics-list"></div>
             </div>
-
             <div id="adminSettingsSection" class="dashboard-section hidden">
                 <h2>Admin Settings</h2>
                 <button id="resetAllActivitiesBtn">Reset All Worker Activities</button>
