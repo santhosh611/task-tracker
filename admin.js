@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const adminCredentials = {
         username: 'admin',
-        password: 'password123'
+        password: '0'
     };
 
     // Admin login
@@ -481,7 +481,6 @@ document.addEventListener('DOMContentLoaded', () => {
             reader.onload({ target: { result: null } });
         }
     });
-
     function loadDepartments() {
         const departments = JSON.parse(localStorage.getItem('departments')) || [];
         const departmentSelect = document.getElementById('newWorkerDepartment');
@@ -490,8 +489,8 @@ document.addEventListener('DOMContentLoaded', () => {
             departmentSelect.innerHTML += `<option value="${dept}">${dept}</option>`;
         });
     }
-
-    addNewDepartmentBtn.addEventListener('click', () => {
+    
+    document.getElementById('addNewDepartmentBtn').addEventListener('click', () => {
         const newDepartment = prompt('Enter new department name:');
         if (newDepartment) {
             const departments = JSON.parse(localStorage.getItem('departments')) || [];
@@ -505,167 +504,217 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
+// Update the loadTopics function
+function loadTopics() {
+    const topics = JSON.parse(localStorage.getItem('topics')) || [];
+    const departments = JSON.parse(localStorage.getItem('departments')) || [];
+    const topicsList = document.getElementById('topicsList');
+    topicsList.innerHTML = '';
 
-    function loadTopics() {
-        const topics = JSON.parse(localStorage.getItem('topics')) || [];
-        const topicsList = document.getElementById('topicsList');
-        topicsList.innerHTML = '';
+    // Create input for filtering by department
+    const departmentFilter = document.createElement('div');
+    departmentFilter.className = 'department-filter';
+    departmentFilter.innerHTML = `
+        <label for="filterDepartment">Filter by Department:</label>
+        <select id="filterDepartment">
+            <option value="">All Departments</option>
+            ${departments.map(dept => `<option value="${dept}">${dept}</option>`).join('')}
+        </select>
+    `;
+    topicsList.appendChild(departmentFilter);
 
-        topics.forEach(topic => {
-            if (!topic || !topic.name) return; // Skip invalid topics
-            
-            const topicElement = document.createElement('div');
-            topicElement.className = 'topic-item';
-            topicElement.innerHTML = `
-                <div class="topic-info">
-                    <span class="topic-name">${topic.name}</span>
-                    <span class="topic-points">(${topic.points} points)</span>
-                </div>
-                <div class="topic-actions">
-                    <button type="button" class="edit-topic-btn" data-topic="${topic.name}">
-                        <i class="fas fa-edit"></i> Edit
-                    </button>
-                    <button type="button" class="delete-topic-btn" data-topic="${topic.name}">
-                        <i class="fas fa-trash"></i> Delete
-                    </button>
-                </div>
-            `;
-            topicsList.appendChild(topicElement);
+    // Create a container for all topics
+    const allTopicsContainer = document.createElement('div');
+    allTopicsContainer.id = 'allTopicsContainer';
+    topicsList.appendChild(allTopicsContainer);
+
+    // Create sections for each department
+    departments.forEach(department => {
+        const departmentSection = createDepartmentSection(department);
+        allTopicsContainer.appendChild(departmentSection);
+    });
+
+    // Create a section for topics without a department
+    const noDepartmentSection = createDepartmentSection('General Topics');
+    allTopicsContainer.appendChild(noDepartmentSection);
+
+    topics.forEach(topic => {
+        const topicElement = createTopicElement(topic);
+        const departmentSection = document.getElementById(`department-${topic.department || 'general'}`);
+        departmentSection.querySelector('.topics-container').appendChild(topicElement);
+    });
+
+    // Add event listener for department filter
+    document.getElementById('filterDepartment').addEventListener('change', (e) => {
+        const selectedDepartment = e.target.value;
+        document.querySelectorAll('.department-section').forEach(section => {
+            if (!selectedDepartment || section.id === `department-${selectedDepartment}` || (selectedDepartment === 'general' && section.id === 'department-general-topics')) {
+                section.style.display = 'block';
+            } else {
+                section.style.display = 'none';
+            }
         });
+    });
 
-        // Add event listeners for edit and delete buttons
-        const deleteButtons = document.querySelectorAll('.delete-topic-btn');
-        const editButtons = document.querySelectorAll('.edit-topic-btn');
-
-        deleteButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const topicName = button.getAttribute('data-topic');
-                deleteTopic(topicName);
-            });
+    // Add event listeners for department toggles
+    document.querySelectorAll('.department-header').forEach(header => {
+        header.addEventListener('click', () => {
+            header.classList.toggle('active');
+            header.nextElementSibling.classList.toggle('hidden');
         });
+    });
+}
+function createDepartmentSection(department) {
+    const section = document.createElement('div');
+    section.className = 'department-section';
+    section.id = `department-${department.toLowerCase().replace(/\s+/g, '-')}`;
+    section.innerHTML = `
+        <div class="department-header">
+            <h3>${department}</h3>
+            <span class="toggle-icon">▼</span>
+        </div>
+        <div class="topics-container hidden"></div>
+    `;
+    return section;
+}
+function createTopicElement(topic) {
+    const topicElement = document.createElement('div');
+    topicElement.className = 'topic-item';
+    topicElement.innerHTML = `
+        <div class="topic-info">
+            <span class="topic-name">${topic.name}</span>
+            <span class="topic-points">(${topic.points} points)</span>
+        </div>
+        <div class="topic-actions">
+            <button class="edit-topic-btn" data-topic="${topic.name}">
+                <i class="fas fa-edit"></i> Edit
+            </button>
+            <button class="delete-topic-btn" data-topic="${topic.name}">
+                <i class="fas fa-trash"></i> Delete
+            </button>
+        </div>
+    `;
 
-        editButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const topicName = button.getAttribute('data-topic');
-                openEditTopicModal(topicName);
-            });
-        });
+    // Add event listeners for edit and delete buttons
+    topicElement.querySelector('.edit-topic-btn').addEventListener('click', () => openEditTopicModal(topic.name));
+    topicElement.querySelector('.delete-topic-btn').addEventListener('click', () => deleteTopic(topic.name));
+
+    return topicElement;
+}
+// Update the addTopicForm event listener
+addTopicForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    const name = document.getElementById('newTopicName').value.trim();
+    const points = parseInt(document.getElementById('newTopicPoints').value);
+    const department = document.getElementById('newTopicDepartment').value;
+
+    if (!name || isNaN(points)) {
+        alert('Please enter valid topic name and points');
+        return;
     }
 
-    function deleteTopic(topicName) {
-        if (!topicName) return; // Guard against undefined topic names
-        
-        if (confirm(`Are you sure you want to delete the topic "${topicName}"?`)) {
-            let topics = JSON.parse(localStorage.getItem('topics')) || [];
-            
-            // Filter out the topic to be deleted
-            topics = topics.filter(topic => topic && topic.name && topic.name !== topicName);
-            
-            // Save the updated topics array
-            localStorage.setItem('topics', JSON.stringify(topics));
-            
-            // Reload the topics list
-            loadTopics();
-            
-            // Update any related worker data
-            const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
-            Object.keys(workerData).forEach(workerName => {
-                if (workerData[workerName].topics) {
-                    workerData[workerName].topics = workerData[workerName].topics.filter(t => t !== topicName);
-                }
-            });
-            localStorage.setItem('workerData', JSON.stringify(workerData));
-        }
+    const topics = JSON.parse(localStorage.getItem('topics')) || [];
+
+    // Check if topic already exists
+    if (topics.some(topic => topic && topic.name === name)) {
+        alert('A topic with this name already exists');
+        return;
     }
 
-    addTopicForm.addEventListener('submit', (e) => {
+    // Add new topic
+    topics.push({ name, points, department });
+    localStorage.setItem('topics', JSON.stringify(topics));
+
+    // Reset form and reload topics
+    addTopicForm.reset();
+    loadTopics();
+    alert('Topic added successfully!');
+});
+// Update the openEditTopicModal function
+function openEditTopicModal(topicName) {
+    const topics = JSON.parse(localStorage.getItem('topics')) || [];
+    const topic = topics.find(t => t && t.name === topicName);
+
+    if (!topic) {
+        alert('Topic not found');
+        return;
+    }
+
+    const departments = JSON.parse(localStorage.getItem('departments')) || [];
+
+    modalContent.innerHTML = `
+        <h3>Edit Topic</h3>
+        <form id="editTopicForm">
+            <div class="form-group">
+                <label for="editTopicName">Topic Name:</label>
+                <input type="text" id="editTopicName" value="${topic.name}" required>
+            </div>
+            <div class="form-group">
+                <label for="editTopicPoints">Points:</label>
+                <input type="number" id="editTopicPoints" value="${topic.points}" required min="0">
+            </div>
+            <div class="form-group">
+                <label for="editTopicDepartment">Department:</label>
+                <select id="editTopicDepartment">
+                    <option value="">All Departments</option>
+                    ${departments.map(dept => `<option value="${dept}" ${dept === topic.department ? 'selected' : ''}>${dept}</option>`).join('')}
+                </select>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">Save Changes</button>
+                <button type="button" class="btn-secondary" id="cancelEditTopic">Cancel</button>
+            </div>
+        </form>
+    `;
+
+    modal.style.display = 'block';
+
+    const editTopicForm = document.getElementById('editTopicForm');
+    const cancelBtn = document.getElementById('cancelEditTopic');
+
+    editTopicForm.addEventListener('submit', (e) => {
         e.preventDefault();
-
-        const name = document.getElementById('newTopicName').value.trim();
-        const points = parseInt(document.getElementById('newTopicPoints').value);
-
-        if (!name || isNaN(points)) {
+        
+        const newName = document.getElementById('editTopicName').value.trim();
+        const newPoints = parseInt(document.getElementById('editTopicPoints').value);
+        const newDepartment = document.getElementById('editTopicDepartment').value;
+        
+        if (!newName || isNaN(newPoints)) {
             alert('Please enter valid topic name and points');
             return;
         }
-
-        const topics = JSON.parse(localStorage.getItem('topics')) || [];
-
-        // Check if topic already exists
-        if (topics.some(topic => topic && topic.name === name)) {
-            alert('A topic with this name already exists');
-            return;
+        
+        // Update topic
+        const index = topics.findIndex(t => t && t.name === topicName);
+        if (index !== -1) {
+            topics[index] = { name: newName, points: newPoints, department: newDepartment };
+            localStorage.setItem('topics', JSON.stringify(topics));
+            loadTopics();
+            modal.style.display = 'none';
+            alert('Topic updated successfully!');
         }
-
-        // Add new topic
-        topics.push({ name, points });
-        localStorage.setItem('topics', JSON.stringify(topics));
-
-        // Reset form and reload topics
-        addTopicForm.reset();
-        loadTopics();
-        alert('Topic added successfully!');
     });
 
-    function openEditTopicModal(topicName) {
-        const topics = JSON.parse(localStorage.getItem('topics')) || [];
-        const topic = topics.find(t => t && t.name === topicName);
-
-        if (!topic) {
-            alert('Topic not found');
-            return;
-        }
-
-        modalContent.innerHTML = `
-            <h3>Edit Topic</h3>
-            <form id="editTopicForm">
-                <div class="form-group">
-                    <label for="editTopicName">Topic Name:</label>
-                    <input type="text" id="editTopicName" value="${topic.name}" required>
-                </div>
-                <div class="form-group">
-                    <label for="editTopicPoints">Points:</label>
-                    <input type="number" id="editTopicPoints" value="${topic.points}" required min="0">
-                </div>
-                <div class="form-actions">
-                    <button type="submit" class="btn-primary">Save Changes</button>
-                    <button type="button" class="btn-secondary" id="cancelEditTopic">Cancel</button>
-                </div>
-            </form>
-        `;
-
-        modal.style.display = 'block';
-
-        const editTopicForm = document.getElementById('editTopicForm');
-        const cancelBtn = document.getElementById('cancelEditTopic');
-
-        editTopicForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            
-            const newName = document.getElementById('editTopicName').value.trim();
-            const newPoints = parseInt(document.getElementById('editTopicPoints').value);
-            
-            if (!newName || isNaN(newPoints)) {
-                alert('Please enter valid topic name and points');
-                return;
-            }
-            
-            // Update topic
-            const index = topics.findIndex(t => t && t.name === topicName);
-            if (index !== -1) {
-                topics[index] = { name: newName, points: newPoints };
-                localStorage.setItem('topics', JSON.stringify(topics));
-                loadTopics();
-                modal.style.display = 'none';
-                alert('Topic updated successfully!');
-            }
-        });
-
-        cancelBtn.addEventListener('click', () => {
-            modal.style.display = 'none';
-        });
+    cancelBtn.addEventListener('click', () => {
+        modal.style.display = 'none';
+    });
+}
+// Add this function to delete a topic
+function deleteTopic(topicName) {
+    if (confirm(`Are you sure you want to delete the topic "${topicName}"?`)) {
+        let topics = JSON.parse(localStorage.getItem('topics')) || [];
+        topics = topics.filter(topic => topic && topic.name !== topicName);
+        localStorage.setItem('topics', JSON.stringify(topics));
+        loadTopics();
+        alert('Topic deleted successfully!');
     }
-
+}
+// Call these functions when the page loads
+document.addEventListener('DOMContentLoaded', () => {
+    loadDepartments();
+    loadTopics();
+});
     resetAllActivitiesBtn.addEventListener('click', () => {
         if (confirm('Are you sure you want to reset all worker activities? This action cannot be undone.')) {
             const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
