@@ -2389,3 +2389,162 @@ body {
         display: block;
     }
 }
+/* Add these styles for the topic management */
+.department-section {
+    margin-bottom: 20px;
+}
+
+.department-header {
+    background-color: #f0f0f0;
+    padding: 10px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.department-header h3 {
+    margin: 0;
+}
+
+.toggle-icon {
+    transition: transform 0.3s;
+}
+
+.department-header.active .toggle-icon {
+    transform: rotate(180deg);
+}
+
+.topics-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 10px;
+    padding: 10px;
+}
+
+.topic-item {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.topic-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.topic-name {
+    font-weight: bold;
+}
+
+.topic-points {
+    font-size: 12px;
+    color: #666;
+}
+
+.topic-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.topic-actions button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+}
+
+.topic-actions button:hover {
+    color: #007bff;
+}
+
+/* Add these styles for the topic management */
+.department-filter {
+    margin-bottom: 20px;
+}
+
+.department-filter label {
+    margin-right: 10px;
+}
+
+.department-section {
+    margin-bottom: 20px;
+}
+
+.department-header {
+    background-color: #f0f0f0;
+    padding: 10px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.department-header h3 {
+    margin: 0;
+}
+
+.toggle-icon {
+    transition: transform 0.3s;
+}
+
+.department-header.active .toggle-icon {
+    transform: rotate(180deg);
+}
+
+.topics-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 10px;
+    padding: 10px;
+}
+
+.topics-container.hidden {
+    display: none;
+}
+
+.topic-item {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.topic-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.topic-name {
+    font-weight: bold;
+}
+
+.topic-points {
+    font-size: 12px;
+    color: #666;
+}
+
+.topic-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.topic-actions button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+}
+
+.topic-actions button:hover {
+    color: #007bff;
+}
