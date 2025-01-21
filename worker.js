@@ -189,17 +189,17 @@ document.addEventListener('DOMContentLoaded', () => {
         updateScoreboard();
     });
 
-    // Update scoreboard
     function updateScoreboard() {
         const workers = JSON.parse(localStorage.getItem('workers')) || [];
         const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
-
+        const columns = JSON.parse(localStorage.getItem('columns')) || [];
+    
         const departmentWorkers = workers
             .filter(worker => worker.department === currentWorker.department)
             .map(worker => {
                 const data = workerData[worker.name] || {};
-                const totalPoints = calculateTotalPoints(data);
-                const todayPoints = calculateTodayPoints(data);
+                const totalPoints = calculateTotalPoints(data, columns);
+                const todayPoints = calculateTodayPoints(data, columns);
                 return {
                     name: worker.name,
                     totalPoints,
@@ -207,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             })
             .sort((a, b) => b.totalPoints - a.totalPoints);
-
+    
         scoreTableBody.innerHTML = '';
         departmentWorkers.forEach((worker, index) => {
             const row = document.createElement('tr');
@@ -221,23 +221,36 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Calculate total points
-    function calculateTotalPoints(data) {
-        const columns = JSON.parse(localStorage.getItem('columns')) || [];
-        return columns.reduce((total, column) => {
-            return total + (parseInt(data[column.name.toLowerCase().replace(/\s+/g, '')]) || 0);
-        }, 0) + (parseInt(data.topicPoints) || 0);
-    }
-
-    // Calculate today's points
-    function calculateTodayPoints(data) {
+    function calculateTodayPoints(data, columns) {
         const today = new Date().toDateString();
-        return (data.activities || [])
-            .filter(activity => new Date(activity.timestamp).toDateString() === today)
-            .reduce((total, activity) => total + activity.points, 0);
+        let todayPoints = 0;
+    
+        if (data.activities) {
+            data.activities.forEach(activity => {
+                if (new Date(activity.timestamp).toDateString() === today && activity.points) {
+                    todayPoints += parseInt(activity.points) || 0;
+                }
+            });
+        }
+    
+        return todayPoints;
     }
 
-    // Handle search
+    function calculateTotalPoints(data, columns) {
+        let totalPoints = 0;
+    
+        // Calculate points from activities (includes both harvest and topic points)
+        if (data.activities) {
+            data.activities.forEach(activity => {
+                if (activity.points) {
+                    totalPoints += parseInt(activity.points) || 0;
+                }
+            });
+        }
+    
+        return totalPoints;
+    }
+  // Handle search
     searchInput.addEventListener('input', (e) => {
         loadWorkers(e.target.value);
     });
