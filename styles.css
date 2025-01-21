@@ -2548,3 +2548,34 @@ body {
 .topic-actions button:hover {
     color: #007bff;
 }
+@media (max-width: 768px) {
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: -250px;
+        bottom: 0;
+        z-index: 1000;
+        transition: left 0.3s ease-in-out;
+    }
+
+    .sidebar.active {
+        left: 0;
+    }
+
+    .main-content {
+        margin-left: 0;
+        transition: margin-left 0.3s ease-in-out;
+    }
+
+    .main-content.sidebar-active {
+        margin-left: 250px;
+    }
+
+    .sidebar-toggle {
+        display: block;
+        position: fixed;
+        top: 15px;
+        left: 15px;
+        z-index: 1001;
+    }
+}
