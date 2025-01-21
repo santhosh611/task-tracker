@@ -243,41 +243,50 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Toggle sidebar
-    sidebarToggle.addEventListener('click', () => {
+sidebarToggle.addEventListener('click', () => {
+    const isMobile = window.innerWidth <= 768;
+    
+    if (isMobile) {
+        sidebar.classList.toggle('active');
+        mainContent.classList.toggle('sidebar-active');
+    } else {
         sidebar.classList.toggle('collapsed');
         mainContent.classList.toggle('expanded');
-        
-        // Store sidebar state in localStorage
-        localStorage.setItem('sidebarState', sidebar.classList.contains('collapsed') ? 'collapsed' : 'expanded');
-    });
-
-    // Close sidebar when clicking outside on mobile
-    document.addEventListener('click', (e) => {
-        const isMobile = window.innerWidth <= 768;
-        const clickedOutsideSidebar = !sidebar.contains(e.target) && !sidebarToggle.contains(e.target);
-        
-        if (isMobile && clickedOutsideSidebar && sidebar.classList.contains('active')) {
-            sidebar.classList.remove('active');
-            mainContent.classList.remove('sidebar-active');
-        }
-    });
-
-    // Handle window resize
-    window.addEventListener('resize', () => {
-        const isMobile = window.innerWidth <= 768;
-        
-        if (isMobile) {
+    }
+    
+    // Store sidebar state in localStorage
+    localStorage.setItem('sidebarState', sidebar.classList.contains('collapsed') ? 'collapsed' : 'expanded');
+});
+// Close sidebar when clicking outside on mobile
+document.addEventListener('click', (e) => {
+    const isMobile = window.innerWidth <= 768;
+    const clickedOutsideSidebar = !sidebar.contains(e.target) && !sidebarToggle.contains(e.target);
+    
+    if (isMobile && clickedOutsideSidebar && sidebar.classList.contains('active')) {
+        sidebar.classList.remove('active');
+        mainContent.classList.remove('sidebar-active');
+    }
+});
+// Handle window resize
+window.addEventListener('resize', () => {
+    const isMobile = window.innerWidth <= 768;
+    
+    if (isMobile) {
+        sidebar.classList.remove('collapsed');
+        sidebar.classList.remove('active');
+        mainContent.classList.remove('expanded');
+        mainContent.classList.remove('sidebar-active');
+    } else {
+        const storedState = localStorage.getItem('sidebarState');
+        if (storedState === 'collapsed') {
             sidebar.classList.add('collapsed');
             mainContent.classList.add('expanded');
         } else {
-            const storedState = localStorage.getItem('sidebarState');
-            if (storedState === 'expanded') {
-                sidebar.classList.remove('collapsed');
-                mainContent.classList.remove('expanded');
-            }
+            sidebar.classList.remove('collapsed');
+            mainContent.classList.remove('expanded');
         }
-    });
-
+    }
+});
     // Handle sidebar navigation
     dashboardLink.addEventListener('click', (e) => {
         e.preventDefault();
