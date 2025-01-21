@@ -79,25 +79,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
         const columns = JSON.parse(localStorage.getItem('columns')) || [];
         workerActivitiesBody.innerHTML = '';
-
-        const sortedWorkers = workers.map(worker => {
-            const data = workerData[worker.name] || {};
-            const totalPoints = calculateTotalPoints(data);
-            return {
-                ...worker,
-                ...data,
-                totalPoints,
-                lastSubmission: data.lastSubmission || {}
-            };
-        }).sort((a, b) => b.totalPoints - a.totalPoints);
-
-        const filteredWorkers = sortedWorkers.filter(worker => 
-            worker.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            worker.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            worker.department.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-
-        // Update table header
+    
+        // Update header to include all columns
         const headerRow = workerActivitiesHead.querySelector('tr');
         headerRow.innerHTML = `
             <th>Rank</th>
@@ -111,16 +94,47 @@ document.addEventListener('DOMContentLoaded', () => {
             <th>Last Submission</th>
             <th>Actions</th>
         `;
-
+    
+        const sortedWorkers = workers.map(worker => {
+            const data = workerData[worker.name] || {};
+            const totalPoints = calculateTotalPoints(data, columns);
+            return {
+                ...worker,
+                ...data,
+                totalPoints,
+                lastSubmission: data.lastSubmission || {}
+            };
+        }).sort((a, b) => b.totalPoints - a.totalPoints);
+    
+        const filteredWorkers = sortedWorkers.filter(worker => 
+            worker.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            worker.department.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    
         filteredWorkers.forEach((worker, index) => {
             const rank = worker.totalPoints > 0 ? index + 1 : '-';
             const row = document.createElement('tr');
+            
+            // Get points for each column
+            const columnPoints = columns.map(column => {
+                const columnName = column.name.toLowerCase().replace(/\s+/g, '');
+                let points = 0;
+                if (worker.activities) {
+                    worker.activities.forEach(activity => {
+                        if (activity.harvest && activity.harvest[columnName]) {
+                            points += parseInt(activity.harvest[columnName]) || 0;
+                        }
+                    });
+                }
+                return points;
+            });
+    
             row.innerHTML = `
                 <td>${rank}</td>
                 <td><img src="${worker.photo || '/placeholder.svg?height=50&width=50&text=' + worker.name}" alt="${worker.name}'s photo" class="worker-photo-small"></td>
                 <td>${worker.name}</td>
                 <td>${worker.department}</td>
-                ${columns.map(column => `<td>${worker[column.name.toLowerCase().replace(/\s+/g, '')] || 0}</td>`).join('')}
+                ${columnPoints.map(points => `<td>${points}</td>`).join('')}
                 <td>${worker.topicPoints || 0}</td>
                 <td>${worker.totalPoints}</td>
                 <td>${formatTodayActivities(worker.activities)}</td>
@@ -163,13 +177,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function calculateTotalPoints(data) {
-        const columns = JSON.parse(localStorage.getItem('columns')) || [];
-        return columns.reduce((total, column) => {
-            return total + (parseInt(data[column.name.toLowerCase().replace(/\s+/g, '')]) || 0);
-        }, 0) + (parseInt(data.topicPoints) || 0);
+    function calculateTotalPoints(data, columns) {
+        let totalPoints = 0;
+    
+        // Calculate points from activities (includes both harvest and topic points)
+        if (data.activities) {
+            data.activities.forEach(activity => {
+                if (activity.points) {
+                    totalPoints += parseInt(activity.points) || 0;
+                }
+            });
+        }
+    
+        return totalPoints;
     }
-
     searchInput.addEventListener('input', (e) => {
         loadWorkerActivities(e.target.value);
     });
