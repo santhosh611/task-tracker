@@ -33,6 +33,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const commentList = document.getElementById('commentList');
     const addCommentForm = document.getElementById('addCommentForm');
     const leaveRequestNotification = document.getElementById('leaveRequestNotification');
+    commentsLink.addEventListener('click', () => {
+        updateNotifications();
+    });
+
 
     let currentWorker = null;
 
@@ -272,6 +276,7 @@ sidebarToggle.addEventListener('click', () => {
 });
 // Close sidebar when clicking outside on mobile
 document.addEventListener('click', (e) => {
+   
     const isMobile = window.innerWidth <= 768;
     const clickedOutsideSidebar = !sidebar.contains(e.target) && !sidebarToggle.contains(e.target);
     
@@ -365,24 +370,180 @@ window.addEventListener('resize', () => {
         links.forEach(link => link.classList.remove('active'));
         activeLink.classList.add('active');
     }
-
+    function updateNotifications() {
+        const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
+        const currentWorkerData = workerData[currentWorker.name] || {};
+        const comments = currentWorkerData.comments || [];
+    
+        // Count new comments or replies
+        const newNotifications = comments.filter(comment => 
+            comment.isNew || 
+            (comment.replies && comment.replies.some(reply => reply.isNew))
+        );
+    
+        // Select notification element
+        const commentNotification = document.getElementById('leaveRequestNotification');
+        
+        if (newNotifications.length > 0) {
+            // Show notification with count
+            commentNotification.classList.remove('hidden');
+            commentNotification.textContent = newNotifications.length;
+        } else {
+            // Hide notification if no new items
+            commentNotification.classList.add('hidden');
+        }
+    }
+    
     // Load comments
     function loadComments() {
         const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
         const comments = workerData[currentWorker.name]?.comments || [];
         
+        // Sort comments by most recent timestamp
+        const sortedComments = comments.sort((a, b) => {
+            // If comment has replies, use the most recent reply or comment timestamp
+            const aTimestamp = a.replies && a.replies.length > 0 
+                ? Math.max(
+                    new Date(a.timestamp).getTime(), 
+                    Math.max(...a.replies.map(reply => new Date(reply.timestamp).getTime()))
+                )
+                : new Date(a.timestamp).getTime();
+            
+            const bTimestamp = b.replies && b.replies.length > 0 
+                ? Math.max(
+                    new Date(b.timestamp).getTime(), 
+                    Math.max(...b.replies.map(reply => new Date(reply.timestamp).getTime()))
+                )
+                : new Date(b.timestamp).getTime();
+            
+            return bTimestamp - aTimestamp;
+        });
+        
         commentList.innerHTML = '';
         comments.forEach(comment => {
             const commentElement = document.createElement('div');
-            commentElement.className = 'comment';
-            commentElement.innerHTML = `
-                <p>${comment.text}</p>
-                <small>${new Date(comment.timestamp).toLocaleString()}</small>
+            commentElement.className = `comment ${comment.isNew ? 'new-comment' : ''}`;
+            
+            let commentContent = `
+                <div class="comment-text">${comment.text}</div>
+                <small class="comment-timestamp">${new Date(comment.timestamp).toLocaleString()}</small>
             `;
+    
+            // Add admin replies if they exist
+            if (comment.replies && comment.replies.length > 0) {
+                const repliesContent = comment.replies.map(reply => `
+                    <div class="admin-reply ${reply.isNew ? 'new-reply' : ''}">
+                        <strong>Admin Reply:</strong>
+                        <p>${reply.text}</p>
+                        <small class="reply-timestamp">${new Date(reply.timestamp).toLocaleString()}</small>
+                    </div>
+                `).join('');
+    
+                commentContent += `
+                    <div class="comment-replies">
+                        ${repliesContent}
+                    </div>
+                `;
+            }
+    
+            commentElement.innerHTML = commentContent;
             commentList.appendChild(commentElement);
+    
+            // Mark comment as viewed
+            comment.isNew = false;
+    
+            // Mark replies as viewed
+            if (comment.replies) {
+                comment.replies.forEach(reply => {
+                    reply.isNew = false;
+                });
+            }
         });
+    
+        // Update worker data in localStorage
+        const updatedWorkerData = JSON.parse(localStorage.getItem('workerData')) || {};
+        updatedWorkerData[currentWorker.name].comments = comments;
+        localStorage.setItem('workerData', JSON.stringify(updatedWorkerData));
+    
+        // Update notifications
+        updateNotifications();
     }
+function updateCommentNotification() {
+    const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
+    const comments = workerData[currentWorker.name]?.comments || [];
 
+    // Check for new comments or admin replies
+    const newComments = comments.filter(comment => 
+        comment.isNew || 
+        (comment.replies && comment.replies.some(reply => reply.isNew))
+    );
+
+    const commentNotificationBadge = document.querySelector('#commentsLink .notification-dot');
+    if (newComments.length > 0) {
+        commentNotificationBadge.classList.remove('hidden');
+        commentNotificationBadge.textContent = newComments.length;
+    } else {
+        commentNotificationBadge.classList.add('hidden');
+    }
+}
+
+// Modify the admin.js reply function to add isNew flag
+function openAdminReplyModal(workerName, commentTimestamp) {
+    const modalContent = document.getElementById('modalContent');
+    modalContent.innerHTML = `
+        <h3>Reply to ${workerName}'s Comment</h3>
+        <form id="adminReplyForm">
+            <textarea id="adminReplyText" rows="4" required placeholder="Type your reply..."></textarea>
+            <button type="submit">Send Reply</button>
+        </form>
+    `;
+    
+    const modal = document.getElementById('modal');
+    modal.style.display = 'block';
+
+    const adminReplyForm = document.getElementById('adminReplyForm');
+    adminReplyForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const replyText = document.getElementById('adminReplyText').value.trim();
+        
+        if (replyText) {
+            const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
+            
+            if (workerData[workerName]) {
+                const commentIndex = workerData[workerName].comments.findIndex(
+                    comment => comment.timestamp === commentTimestamp
+                );
+                
+                if (commentIndex !== -1) {
+                    const newReply = {
+                        text: replyText,
+                        timestamp: new Date().toISOString(),
+                        isAdminReply: true,
+                        isNew: true  // Explicitly mark as new
+                    };
+                    
+                    // Ensure replies array exists
+                    workerData[workerName].comments[commentIndex].replies = 
+                        workerData[workerName].comments[commentIndex].replies || [];
+                    
+                    // Add reply
+                    workerData[workerName].comments[commentIndex].replies.push(newReply);
+                    
+                    // Mark the original comment as having a new reply
+                    workerData[workerName].comments[commentIndex].isNew = true;
+                    
+                    // Save updated worker data
+                    localStorage.setItem('workerData', JSON.stringify(workerData));
+                    
+                    // Close modal
+                    modal.style.display = 'none';
+                    
+                    alert('Reply sent successfully!');
+                }
+            }
+        }
+    });
+}
     // Handle leave application
     leaveApplicationForm.addEventListener('submit', (e) => {
         e.preventDefault();
