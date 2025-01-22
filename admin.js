@@ -252,7 +252,132 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Worker not found.');
         }
     }
-
+    function loadAllReplies() {
+        const repliesList = document.getElementById('repliesList');
+        const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
+        const workers = JSON.parse(localStorage.getItem('workers')) || [];
+    
+        // Collect all comments across workers
+        let allComments = [];
+        workers.forEach(worker => {
+            const workerComments = workerData[worker.name]?.comments || [];
+            const processedComments = workerComments.map(comment => ({
+                workerName: worker.name,
+                department: worker.department,
+                ...comment,
+                replies: comment.replies || []
+            }));
+            allComments = allComments.concat(processedComments);
+        });
+    
+        // Sort comments by most recent
+        allComments.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
+        // Clear existing content
+        repliesList.innerHTML = '';
+    
+        // Create comments container
+        const commentsContainer = document.createElement('div');
+        commentsContainer.className = 'all-comments-container';
+    
+        // Render comments
+        allComments.forEach(comment => {
+            const commentElement = document.createElement('div');
+            commentElement.className = 'admin-comment-item';
+            commentElement.innerHTML = `
+                <div class="comment-header">
+                    <strong>${comment.workerName}</strong>
+                    <span class="comment-department">(${comment.department})</span>
+                    <small class="comment-date">${new Date(comment.timestamp).toLocaleString()}</small>
+                </div>
+                <div class="comment-body">
+                    <p>${comment.text}</p>
+                </div>
+                <div class="comment-replies">
+                    ${comment.replies.map(reply => `
+                        <div class="admin-reply">
+                            <strong>Admin Reply:</strong>
+                            <p>${reply.text}</p>
+                            <small>${new Date(reply.timestamp).toLocaleString()}</small>
+                        </div>
+                    `).join('') || ''}
+                </div>
+                <button class="reply-to-comment-btn" data-worker="${comment.workerName}" data-timestamp="${comment.timestamp}">
+                    Reply
+                </button>
+            `;
+            commentsContainer.appendChild(commentElement);
+        });
+    
+        repliesList.appendChild(commentsContainer);
+    
+        // Add event listeners for reply buttons
+        repliesList.addEventListener('click', (e) => {
+            if (e.target.classList.contains('reply-to-comment-btn')) {
+                const workerName = e.target.getAttribute('data-worker');
+                const commentTimestamp = e.target.getAttribute('data-timestamp');
+                openAdminReplyModal(workerName, commentTimestamp);
+            }
+        });
+    }
+    
+    function openAdminReplyModal(workerName, commentTimestamp) {
+        const modalContent = document.getElementById('modalContent');
+        modalContent.innerHTML = `
+            <h3>Reply to ${workerName}'s Comment</h3>
+            <form id="adminReplyForm">
+                <textarea id="adminReplyText" rows="4" required placeholder="Type your reply..."></textarea>
+                <button type="submit">Send Reply</button>
+            </form>
+        `;
+        
+        const modal = document.getElementById('modal');
+        modal.style.display = 'block';
+    
+        const adminReplyForm = document.getElementById('adminReplyForm');
+        adminReplyForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const replyText = document.getElementById('adminReplyText').value.trim();
+            
+            if (replyText) {
+                // Get worker data
+                const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
+                
+                // Find and update the specific comment
+                if (workerData[workerName]) {
+                    const commentIndex = workerData[workerName].comments.findIndex(
+                        comment => comment.timestamp === commentTimestamp
+                    );
+                    
+                    if (commentIndex !== -1) {
+                        const newReply = {
+                            text: replyText,
+                            timestamp: new Date().toISOString(),
+                            isAdminReply: true
+                        };
+                        
+                        // Initialize replies array if not exists
+                        if (!workerData[workerName].comments[commentIndex].replies) {
+                            workerData[workerName].comments[commentIndex].replies = [];
+                        }
+                        
+                        workerData[workerName].comments[commentIndex].replies.push(newReply);
+                        
+                        // Save updated worker data
+                        localStorage.setItem('workerData', JSON.stringify(workerData));
+                        
+                        // Reload replies
+                        loadAllReplies();
+                        
+                        // Close modal
+                        modal.style.display = 'none';
+                        
+                        alert('Reply sent successfully!');
+                    }
+                }
+            }
+        });
+    }
     function openEditWorkerModal(workerName) {
         const workers = JSON.parse(localStorage.getItem('workers')) || [];
         const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
@@ -762,6 +887,13 @@ document.addEventListener('DOMContentLoaded', () => {
     loadDepartments();
     loadTopics();
 });
+const viewAllRepliesLink = document.querySelector('a[data-section="viewAllReplies"]');
+if (viewAllRepliesLink) {
+    viewAllRepliesLink.addEventListener('click', () => {
+        loadAllReplies();
+    });
+}
+
     resetAllActivitiesBtn.addEventListener('click', () => {
         if (confirm('Are you sure you want to reset all worker activities? This action cannot be undone.')) {
             const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
