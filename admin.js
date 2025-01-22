@@ -45,12 +45,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Sidebar functionality
+    let sidebarOpen = false; // Track sidebar state
+
     openSidebarBtn.addEventListener('click', () => {
-        sidebar.classList.add('open');
+        sidebar.classList.add('active');
+        mainContent.style.marginLeft = '250px'; // Adjust main content margin
+        sidebarOpen = true;
     });
 
     closeSidebarBtn.addEventListener('click', () => {
-        sidebar.classList.remove('open');
+        sidebar.classList.remove('active');
+        mainContent.style.marginLeft = '0'; // Reset main content margin
+        sidebarOpen = false;
     });
 
     sidebarLinks.forEach(link => {
@@ -58,8 +64,12 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const section = e.target.getAttribute('data-section');
             showSection(section);
+
+            // Close sidebar on mobile after navigation
             if (window.innerWidth <= 768) {
-                sidebar.classList.remove('open');
+                sidebar.classList.remove('active');
+                mainContent.style.marginLeft = '0'; // Reset main content margin
+                sidebarOpen = false;
             }
         });
     });
