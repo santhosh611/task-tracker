@@ -374,6 +374,7 @@ window.addEventListener('resize', () => {
         const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
         const currentWorkerData = workerData[currentWorker.name] || { comments: [] };
         const comments = currentWorkerData.comments;
+    
         // Count new comments or replies
         const newNotifications = comments.filter(comment => 
             comment.isNew || 
@@ -392,20 +393,26 @@ window.addEventListener('resize', () => {
             commentNotification.classList.add('hidden');
         }
     }
-    
     // Load comments
     function loadComments() {
         const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
         const comments = workerData[currentWorker.name]?.comments || [];
         
-        const sortedComments = comments.sort((a, b) => 
-            new Date(b.timestamp) - new Date(a.timestamp)
-        );
+        const sortedComments = comments.sort((a, b) => {
+            // Determine the latest timestamp for each comment (including replies)
+            const aLatest = a.replies && a.replies.length ? 
+                Math.max(new Date(a.timestamp), ...a.replies.map(r => new Date(r.timestamp))) :
+                new Date(a.timestamp);
+            const bLatest = b.replies && b.replies.length ? 
+                Math.max(new Date(b.timestamp), ...b.replies.map(r => new Date(r.timestamp))) :
+                new Date(b.timestamp);
+            return bLatest - aLatest;
+        });
     
         commentList.innerHTML = '';
         sortedComments.forEach(comment => {
             const commentElement = document.createElement('div');
-            commentElement.className = 'comment';
+            commentElement.className = `comment ${comment.isNew ? 'new-comment' : ''}`;
             
             // Attachment handling
             let attachmentContent = '';
@@ -435,9 +442,26 @@ window.addEventListener('resize', () => {
                 `;
             }
     
+            // Render replies
+            let repliesContent = '';
+            if (comment.replies && comment.replies.length > 0) {
+                repliesContent = comment.replies.map(reply => `
+                    <div class="comment-reply ${reply.isNew ? 'new-reply' : ''}">
+                        <strong>${reply.isAdminReply ? 'Admin ' : ''}Reply:</strong>
+                        <p>${reply.text}</p>
+                        <small class="reply-timestamp">
+                            ${new Date(reply.timestamp).toLocaleString()}
+                        </small>
+                    </div>
+                `).join('');
+            }
+    
             commentElement.innerHTML = `
                 <div class="comment-text">${comment.text}</div>
                 ${attachmentContent}
+                <div class="comment-replies">
+                    ${repliesContent}
+                </div>
                 <small class="comment-timestamp">
                     ${new Date(comment.timestamp).toLocaleString()}
                 </small>
@@ -496,13 +520,22 @@ function closeAttachmentModal() {
     }
 }
     
-    
-        const updatedWorkerData = JSON.parse(localStorage.getItem('workerData')) || {};
-        updatedWorkerData[currentWorker.name].comments = sortedComments;
-        localStorage.setItem('workerData', JSON.stringify(updatedWorkerData));
-        
-        updateNotifications();
-    }
+    // Mark all comments and replies as read
+    sortedComments.forEach(comment => {
+        comment.isNew = false;
+        if (comment.replies) {
+            comment.replies.forEach(reply => reply.isNew = false);
+        }
+    });
+
+    // Update worker data in localStorage
+    const updatedWorkerData = JSON.parse(localStorage.getItem('workerData')) || {};
+    updatedWorkerData[currentWorker.name].comments = sortedComments;
+    localStorage.setItem('workerData', JSON.stringify(updatedWorkerData));
+
+    // Update notifications
+    updateNotifications();
+}
 function updateCommentNotification() {
     const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
     const comments = workerData[currentWorker.name]?.comments || [];
