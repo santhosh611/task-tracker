@@ -325,36 +325,48 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     `;
                 }
-    
-                commentElement.innerHTML = `
-                    <div class="comment-header">
-                        <strong>${comment.workerName}</strong>
-                        <span class="comment-department">(${comment.department})</span>
-                        <small class="comment-date">
-                            ${new Date(comment.timestamp).toLocaleString()}
-                        </small>
+                const repliesContent = comment.replies ? comment.replies.map(reply => `
+                    <div class="admin-reply">
+                        <strong>Admin Reply:</strong>
+                        <p>${reply.text}</p>
+                        <small>${new Date(reply.timestamp).toLocaleString()}</small>
                     </div>
-                    <p class="comment-text">${comment.text}</p>
-                    ${attachmentContent}
-                `;
-                
-                commentsContainer.appendChild(commentElement);
-            });
+                `).join('') : '';
+                commentElement.innerHTML = `
+                <div class="comment-header">
+                    <strong>${comment.workerName}</strong>
+                    <span class="comment-department">(${comment.department})</span>
+                    <small class="comment-date">
+                        ${new Date(comment.timestamp).toLocaleString()}
+                    </small>
+                </div>
+                <p class="comment-text">${comment.text}</p>
+                ${attachmentContent}
+                <div class="comment-replies">
+                    ${repliesContent}
+                </div>
+                <button class="btn-reply-comment" 
+                        data-worker="${comment.workerName}" 
+                        data-timestamp="${comment.timestamp}">
+                    Reply
+                </button>
+            `;
+            
+            commentsContainer.appendChild(commentElement);
+        });
     
             // Add event listeners for view buttons
-            commentsContainer.querySelectorAll('.btn-view-attachment').forEach(button => {
+            commentsContainer.querySelectorAll('.btn-reply-comment').forEach(button => {
                 button.addEventListener('click', (e) => {
-                    const name = e.target.getAttribute('data-name');
-                    const type = e.target.getAttribute('data-type');
-                    const data = e.target.getAttribute('data-data');
-                    
-                    openAttachmentModal(name, type, data);
+                    const workerName = e.target.getAttribute('data-worker');
+                    const commentTimestamp = e.target.getAttribute('data-timestamp');
+                    openAdminReplyModal(workerName, commentTimestamp);
                 });
             });
-        
+        }
     
         repliesList.appendChild(commentsContainer);
-    }
+    
     
         // Add event listeners for reply buttons
         repliesList.addEventListener('click', (e) => {
@@ -372,7 +384,10 @@ document.addEventListener('DOMContentLoaded', () => {
             <h3>Reply to ${workerName}'s Comment</h3>
             <form id="adminReplyForm">
                 <textarea id="adminReplyText" rows="4" required placeholder="Type your reply..."></textarea>
-                <button type="submit">Send Reply</button>
+                <div class="modal-actions">
+                    <button type="submit" class="btn-primary">Send Reply</button>
+                    <button type="button" class="btn-secondary" id="cancelReply">Cancel</button>
+                </div>
             </form>
         `;
         
@@ -380,6 +395,8 @@ document.addEventListener('DOMContentLoaded', () => {
         modal.style.display = 'block';
     
         const adminReplyForm = document.getElementById('adminReplyForm');
+        const cancelBtn = document.getElementById('cancelReply');
+    
         adminReplyForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const replyText = document.getElementById('adminReplyText').value.trim();
@@ -398,7 +415,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         const newReply = {
                             text: replyText,
                             timestamp: new Date().toISOString(),
-                            isAdminReply: true
+                            isAdminReply: true,
+                            isNew: true
                         };
                         
                         // Initialize replies array if not exists
@@ -406,6 +424,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             workerData[workerName].comments[commentIndex].replies = [];
                         }
                         
+                        // Add reply
                         workerData[workerName].comments[commentIndex].replies.push(newReply);
                         
                         // Save updated worker data
