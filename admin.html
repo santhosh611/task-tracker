@@ -18,7 +18,6 @@
             <button type="submit">Login</button>
         </form>
     </div>
-
     <div id="adminDashboard" class="hidden">
         <div id="sidebar" class="sidebar">
             <button id="closeSidebarBtn" class="close-sidebar-btn" aria-label="Close Sidebar">&times;</button>
@@ -30,11 +29,12 @@
                     <li><a href="#" data-section="adminSettings">Admin Settings</a></li>
                     <li><a href="#" data-section="viewAllReplies">View All Replies</a></li>
                     <li><a href="#" data-section="leaveManagement">Leave Management</a></li>
+                    <li><a href="#" data-section="leaveInsights">Leave Insights</a></li>
                     <li><a href="#" data-section="manageColumns">Manage Columns</a></li>
                 </ul>
             </nav>
         </div>
-
+        
         <div id="mainContent">
             <button id="openSidebarBtn" class="open-sidebar-btn" aria-label="Open Sidebar">
                 <i class="fas fa-bars" aria-hidden="true"></i>
@@ -141,7 +141,20 @@
                     <tbody id="leaveApplicationsBody"></tbody>
                 </table>
             </div>
-
+            <div id="leaveInsightsSection" class="dashboard-section hidden">
+                <h2>Leave Insights</h2>
+                <div id="leaveInsightsSummary"></div>
+                <table id="leaveInsightsTable">
+                    <thead>
+                        <tr>
+                            <th>Worker Name</th>
+                            <th>Department</th>
+                            <th>Days Left This Month</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaveInsightsBody"></tbody>
+                </table>
+            </div>
             <div id="manageColumnsSection" class="dashboard-section hidden">
                 <h2>Manage Columns</h2>
                 <div id="columnsList"></div>
