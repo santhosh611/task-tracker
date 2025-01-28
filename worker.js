@@ -372,9 +372,8 @@ window.addEventListener('resize', () => {
     }
     function updateNotifications() {
         const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
-        const currentWorkerData = workerData[currentWorker.name] || {};
-        const comments = currentWorkerData.comments || [];
-    
+        const currentWorkerData = workerData[currentWorker.name] || { comments: [] };
+        const comments = currentWorkerData.comments;
         // Count new comments or replies
         const newNotifications = comments.filter(comment => 
             comment.isNew || 
@@ -399,73 +398,109 @@ window.addEventListener('resize', () => {
         const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
         const comments = workerData[currentWorker.name]?.comments || [];
         
-        // Sort comments by most recent timestamp
-        const sortedComments = comments.sort((a, b) => {
-            // If comment has replies, use the most recent reply or comment timestamp
-            const aTimestamp = a.replies && a.replies.length > 0 
-                ? Math.max(
-                    new Date(a.timestamp).getTime(), 
-                    Math.max(...a.replies.map(reply => new Date(reply.timestamp).getTime()))
-                )
-                : new Date(a.timestamp).getTime();
-            
-            const bTimestamp = b.replies && b.replies.length > 0 
-                ? Math.max(
-                    new Date(b.timestamp).getTime(), 
-                    Math.max(...b.replies.map(reply => new Date(reply.timestamp).getTime()))
-                )
-                : new Date(b.timestamp).getTime();
-            
-            return bTimestamp - aTimestamp;
-        });
-        
+        const sortedComments = comments.sort((a, b) => 
+            new Date(b.timestamp) - new Date(a.timestamp)
+        );
+    
         commentList.innerHTML = '';
-        comments.forEach(comment => {
+        sortedComments.forEach(comment => {
             const commentElement = document.createElement('div');
-            commentElement.className = `comment ${comment.isNew ? 'new-comment' : ''}`;
+            commentElement.className = 'comment';
             
-            let commentContent = `
-                <div class="comment-text">${comment.text}</div>
-                <small class="comment-timestamp">${new Date(comment.timestamp).toLocaleString()}</small>
-            `;
-    
-            // Add admin replies if they exist
-            if (comment.replies && comment.replies.length > 0) {
-                const repliesContent = comment.replies.map(reply => `
-                    <div class="admin-reply ${reply.isNew ? 'new-reply' : ''}">
-                        <strong>Admin Reply:</strong>
-                        <p>${reply.text}</p>
-                        <small class="reply-timestamp">${new Date(reply.timestamp).toLocaleString()}</small>
-                    </div>
-                `).join('');
-    
-                commentContent += `
-                    <div class="comment-replies">
-                        ${repliesContent}
+            // Attachment handling
+            let attachmentContent = '';
+            if (comment.attachment) {
+                attachmentContent = `
+                    <div class="comment-attachment">
+                        <div class="attachment-icon">
+                            <i class="fas fa-file"></i>
+                        </div>
+                        <div class="attachment-details">
+                            <span class="attachment-name">${comment.attachment.name}</span>
+                            <div class="attachment-actions">
+                                <button class="btn-view-attachment" 
+                                        data-name="${comment.attachment.name}"
+                                        data-type="${comment.attachment.type}"
+                                        data-data="${comment.attachment.data}">
+                                    View
+                                </button>
+                                <a href="${comment.attachment.data}" 
+                                   download="${comment.attachment.name}" 
+                                   class="btn-download-attachment">
+                                    Download
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 `;
             }
     
-            commentElement.innerHTML = commentContent;
+            commentElement.innerHTML = `
+                <div class="comment-text">${comment.text}</div>
+                ${attachmentContent}
+                <small class="comment-timestamp">
+                    ${new Date(comment.timestamp).toLocaleString()}
+                </small>
+            `;
+            
             commentList.appendChild(commentElement);
-    
-            // Mark comment as viewed
+            
             comment.isNew = false;
-    
-            // Mark replies as viewed
             if (comment.replies) {
-                comment.replies.forEach(reply => {
-                    reply.isNew = false;
-                });
+                comment.replies.forEach(reply => reply.isNew = false);
             }
         });
+        document.querySelectorAll('.btn-view-attachment').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const name = e.target.getAttribute('data-name');
+                const type = e.target.getAttribute('data-type');
+                const data = e.target.getAttribute('data-data');
+                
+                openAttachmentModal(name, type, data);
+            });
+        });
     
-        // Update worker data in localStorage
+function openAttachmentModal(name, type, data) {
+    const modal = document.createElement('div');
+    modal.className = 'attachment-modal';
+    modal.innerHTML = `
+        <div class="attachment-modal-content">
+            <span class="close-attachment-modal">&times;</span>
+            <h3>Attachment: ${name}</h3>
+            ${type.startsWith('image/') 
+                ? `<img src="${data}" alt="${name}" class="attachment-image">` 
+                : `<p>File type: ${type}</p>`}
+            <div class="attachment-modal-actions">
+                <a href="${data}" download="${name}" class="btn-download">Download</a>
+                <button class="btn-close">Close</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Close modal when clicking close button or outside the modal
+    modal.querySelector('.close-attachment-modal').addEventListener('click', closeAttachmentModal);
+    modal.querySelector('.btn-close').addEventListener('click', closeAttachmentModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeAttachmentModal();
+        }
+    });
+}
+
+function closeAttachmentModal() {
+    const modal = document.querySelector('.attachment-modal');
+    if (modal) {
+        modal.remove();
+    }
+}
+    
+    
         const updatedWorkerData = JSON.parse(localStorage.getItem('workerData')) || {};
-        updatedWorkerData[currentWorker.name].comments = comments;
+        updatedWorkerData[currentWorker.name].comments = sortedComments;
         localStorage.setItem('workerData', JSON.stringify(updatedWorkerData));
-    
-        // Update notifications
+        
         updateNotifications();
     }
 function updateCommentNotification() {
@@ -576,8 +611,10 @@ function openAdminReplyModal(workerName, commentTimestamp) {
     // Load leave requests
     function loadLeaveRequests() {
         const leaveApplications = JSON.parse(localStorage.getItem('leaveApplications')) || [];
-        const workerApplications = leaveApplications.filter(app => app.workerName === currentWorker.name);
-        
+        const workerApplications = leaveApplications
+        .filter(app => app.workerName === currentWorker.name)
+        .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt)); // Sort in descending order
+    
         leaveRequestsList.innerHTML = '';
         workerApplications.forEach(app => {
             const requestElement = document.createElement('div');
@@ -625,15 +662,39 @@ function openAdminReplyModal(workerName, commentTimestamp) {
     addCommentForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const commentText = document.getElementById('commentText').value;
+        const attachmentInput = document.getElementById('commentAttachment');
         
         const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
         if (!workerData[currentWorker.name]) {
             workerData[currentWorker.name] = { comments: [] };
         }
         
+        // Handle file attachment
+        let attachmentData = null;
+        if (attachmentInput.files.length > 0) {
+            const file = attachmentInput.files[0];
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                attachmentData = {
+                    name: file.name,
+                    type: file.type,
+                    data: event.target.result
+                };
+                
+                saveComment(commentText, attachmentData);
+            };
+            reader.readAsDataURL(file);
+        } else {
+            saveComment(commentText, null);
+        }
+    });
+    
+    function saveComment(commentText, attachmentData) {
+        const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
         const newComment = {
             text: commentText,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            attachment: attachmentData
         };
         
         workerData[currentWorker.name].comments = workerData[currentWorker.name].comments || [];
@@ -643,8 +704,7 @@ function openAdminReplyModal(workerName, commentTimestamp) {
         
         addCommentForm.reset();
         loadComments();
-    });
-
+    }
     // Handle profile image edit
     editProfileImageBtn.addEventListener('click', () => {
         imageUpload.click();
