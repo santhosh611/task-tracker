@@ -64,7 +64,9 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const section = e.target.getAttribute('data-section');
             showSection(section);
-
+            if (section === 'leaveInsights') {
+                calculateLeaveInsights();
+            }
             // Close sidebar on mobile after navigation
             if (window.innerWidth <= 768) {
                 sidebar.classList.remove('active');
@@ -89,11 +91,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
         const columns = JSON.parse(localStorage.getItem('columns')) || [];
         workerActivitiesBody.innerHTML = '';
+        
+        let tableContainer = document.querySelector('.table-container');
+        if (!tableContainer) {
+            tableContainer = document.createElement('div');
+            tableContainer.className = 'table-container';
+            document.getElementById('dashboardSection').appendChild(tableContainer);
+        }
+        
+    // Set the container's overflow to auto for horizontal scrolling
+    tableContainer.style.overflowX = 'auto';
+
+    // Set the table's width to 'max-content' to allow it to grow
+    workerActivitiesTable.style.width = 'max-content';
     
         // Update header to include all columns
         const headerRow = workerActivitiesHead.querySelector('tr');
         headerRow.innerHTML = `
             <th>Rank</th>
+           <th>Settings</th>
             <th>Photo</th>
             <th>Name</th>
             <th>Department</th>
@@ -102,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <th>Total Points</th>
             <th>Today's Activities</th>
             <th>Last Submission</th>
-            <th>Actions</th>
+            
         `;
     
         const sortedWorkers = workers.map(worker => {
@@ -115,11 +131,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 lastSubmission: data.lastSubmission || {}
             };
         }).sort((a, b) => b.totalPoints - a.totalPoints);
-    
-        const filteredWorkers = sortedWorkers.filter(worker => 
-            worker.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            worker.department.toLowerCase().includes(searchTerm.toLowerCase())
-        );
+        
+    const filteredWorkers = sortedWorkers.filter(worker => 
+        worker.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        worker.department.toLowerCase().includes(searchTerm.toLowerCase())
+    );
     
         filteredWorkers.forEach((worker, index) => {
             const rank = worker.totalPoints > 0 ? index + 1 : '-';
@@ -141,16 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
             row.innerHTML = `
                 <td>${rank}</td>
-                <td><img src="${worker.photo || '/placeholder.svg?height=50&width=50&text=' + worker.name}" alt="${worker.name}'s photo" class="worker-photo-small"></td>
-                <td>${worker.name}</td>
-                <td>${worker.department}</td>
-                ${columnPoints.map(points => `<td>${points}</td>`).join('')}
-                <td>${worker.topicPoints || 0}</td>
-                <td>${worker.totalPoints}</td>
-                <td>${formatTodayActivities(worker.activities)}</td>
-                <td>${worker.lastSubmission.timestamp ? new Date(worker.lastSubmission.timestamp).toLocaleString() : 'N/A'}</td>
-                <td>
-                    <button class="settings-btn" aria-label="Settings for ${worker.name}">
+                                    <button class="settings-btn" aria-label="Settings for ${worker.name}">
                         <i class="fas fa-cog"></i>
                     </button>
                     <div class="settings-menu hidden">
@@ -162,6 +169,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         <button class="view-comments-btn">View Comments</button>
                     </div>
                 </td>
+                <td><img src="${worker.photo || '/placeholder.svg?height=50&width=50&text=' + worker.name}" alt="${worker.name}'s photo" class="worker-photo-small"></td>
+                <td>${worker.name}</td>
+                <td>${worker.department}</td>
+                ${columnPoints.map(points => `<td>${points}</td>`).join('')}
+                <td>${worker.topicPoints || 0}</td>
+                <td>${worker.totalPoints}</td>
+                <td>${formatTodayActivities(worker.activities)}</td>
+                <td>${worker.lastSubmission.timestamp ? new Date(worker.lastSubmission.timestamp).toLocaleString() : 'N/A'}</td>
+
             `;
             workerActivitiesBody.appendChild(row);
 
@@ -256,16 +272,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const repliesList = document.getElementById('repliesList');
         const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
         const workers = JSON.parse(localStorage.getItem('workers')) || [];
-    
-        // Collect all comments across workers
+        
         let allComments = [];
         workers.forEach(worker => {
             const workerComments = workerData[worker.name]?.comments || [];
             const processedComments = workerComments.map(comment => ({
                 workerName: worker.name,
                 department: worker.department,
-                ...comment,
-                replies: comment.replies || []
+                ...comment
             }));
             allComments = allComments.concat(processedComments);
         });
@@ -273,43 +287,74 @@ document.addEventListener('DOMContentLoaded', () => {
         // Sort comments by most recent
         allComments.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     
-        // Clear existing content
         repliesList.innerHTML = '';
-    
-        // Create comments container
         const commentsContainer = document.createElement('div');
         commentsContainer.className = 'all-comments-container';
     
-        // Render comments
-        allComments.forEach(comment => {
-            const commentElement = document.createElement('div');
-            commentElement.className = 'admin-comment-item';
-            commentElement.innerHTML = `
-                <div class="comment-header">
-                    <strong>${comment.workerName}</strong>
-                    <span class="comment-department">(${comment.department})</span>
-                    <small class="comment-date">${new Date(comment.timestamp).toLocaleString()}</small>
-                </div>
-                <div class="comment-body">
-                    <p>${comment.text}</p>
-                </div>
-                <div class="comment-replies">
-                    ${comment.replies.map(reply => `
-                        <div class="admin-reply">
-                            <strong>Admin Reply:</strong>
-                            <p>${reply.text}</p>
-                            <small>${new Date(reply.timestamp).toLocaleString()}</small>
+        if (allComments.length === 0) {
+            commentsContainer.innerHTML = '<p>No comments found.</p>';
+        } else {
+            allComments.forEach(comment => {
+                const commentElement = document.createElement('div');
+                commentElement.className = 'admin-comment-item';
+                
+                // Attachment handling
+                let attachmentContent = '';
+                if (comment.attachment) {
+                    attachmentContent = `
+                        <div class="comment-attachment">
+                            <div class="attachment-icon">
+                                <i class="fas fa-file"></i>
+                            </div>
+                            <div class="attachment-details">
+                                <span class="attachment-name">${comment.attachment.name}</span>
+                                <div class="attachment-actions">
+                                    <button class="btn-view-attachment" 
+                                            data-name="${comment.attachment.name}"
+                                            data-type="${comment.attachment.type}"
+                                            data-data="${comment.attachment.data}">
+                                        View
+                                    </button>
+                                    <a href="${comment.attachment.data}" 
+                                       download="${comment.attachment.name}" 
+                                       class="btn-download-attachment">
+                                        Download
+                                    </a>
+                                </div>
+                            </div>
                         </div>
-                    `).join('') || ''}
-                </div>
-                <button class="reply-to-comment-btn" data-worker="${comment.workerName}" data-timestamp="${comment.timestamp}">
-                    Reply
-                </button>
-            `;
-            commentsContainer.appendChild(commentElement);
-        });
+                    `;
+                }
+    
+                commentElement.innerHTML = `
+                    <div class="comment-header">
+                        <strong>${comment.workerName}</strong>
+                        <span class="comment-department">(${comment.department})</span>
+                        <small class="comment-date">
+                            ${new Date(comment.timestamp).toLocaleString()}
+                        </small>
+                    </div>
+                    <p class="comment-text">${comment.text}</p>
+                    ${attachmentContent}
+                `;
+                
+                commentsContainer.appendChild(commentElement);
+            });
+    
+            // Add event listeners for view buttons
+            commentsContainer.querySelectorAll('.btn-view-attachment').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const name = e.target.getAttribute('data-name');
+                    const type = e.target.getAttribute('data-type');
+                    const data = e.target.getAttribute('data-data');
+                    
+                    openAttachmentModal(name, type, data);
+                });
+            });
+        
     
         repliesList.appendChild(commentsContainer);
+    }
     
         // Add event listeners for reply buttons
         repliesList.addEventListener('click', (e) => {
@@ -378,6 +423,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+    
     function openEditWorkerModal(workerName) {
         const workers = JSON.parse(localStorage.getItem('workers')) || [];
         const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
@@ -681,6 +727,7 @@ function loadTopics() {
     const topics = JSON.parse(localStorage.getItem('topics')) || [];
     const departments = JSON.parse(localStorage.getItem('departments')) || [];
     const topicsList = document.getElementById('topicsList');
+    if (!topicsList) return;
     topicsList.innerHTML = '';
 
     // Create input for filtering by department
@@ -694,7 +741,6 @@ function loadTopics() {
         </select>
     `;
     topicsList.appendChild(departmentFilter);
-
     // Create a container for all topics
     const allTopicsContainer = document.createElement('div');
     allTopicsContainer.id = 'allTopicsContainer';
@@ -703,9 +749,10 @@ function loadTopics() {
     // Create sections for each department
     departments.forEach(department => {
         const departmentSection = createDepartmentSection(department);
-        allTopicsContainer.appendChild(departmentSection);
+        if (departmentSection) {
+            topicsList.appendChild(departmentSection);
+        }
     });
-
     // Create a section for topics without a department
     const noDepartmentSection = createDepartmentSection('General Topics');
     allTopicsContainer.appendChild(noDepartmentSection);
@@ -713,9 +760,10 @@ function loadTopics() {
     topics.forEach(topic => {
         const topicElement = createTopicElement(topic);
         const departmentSection = document.getElementById(`department-${topic.department || 'general'}`);
-        departmentSection.querySelector('.topics-container').appendChild(topicElement);
+        if (departmentSection && departmentSection.querySelector('.topics-container')) {
+            departmentSection.querySelector('.topics-container').appendChild(topicElement);
+        }
     });
-
     // Add event listener for department filter
     document.getElementById('filterDepartment').addEventListener('change', (e) => {
         const selectedDepartment = e.target.value;
@@ -913,12 +961,33 @@ if (viewAllRepliesLink) {
             loadWorkerActivities();
         }
     });
-
     function loadLeaveApplications() {
         const leaveApplications = JSON.parse(localStorage.getItem('leaveApplications')) || [];
+        
+        // Sort applications by most recent first
+        const sortedApplications = leaveApplications.sort((a, b) => {
+            return new Date(b.submittedAt) - new Date(a.submittedAt);
+        });
+    
+        // Display all applications without filtering initially
+        displayFilteredLeaveApplications(sortedApplications);
+    }
+    
+    // Modify the existing displayFilteredLeaveApplications function to automatically show all applications
+    function displayFilteredLeaveApplications(applications) {
         leaveApplicationsBody.innerHTML = '';
-
-        leaveApplications.forEach(application => {
+        
+        // If no applications, show a message
+        if (applications.length === 0) {
+            leaveApplicationsBody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center">No leave applications found.</td>
+                </tr>
+            `;
+            return;
+        }
+    
+        applications.forEach(application => {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${application.workerName}</td>
@@ -936,7 +1005,20 @@ if (viewAllRepliesLink) {
             `;
             leaveApplicationsBody.appendChild(row);
         });
-
+    
+    function addLeaveApplicationEventListeners() {
+        document.querySelectorAll('.approve-leave-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => approveLeave(e.target.getAttribute('data-id')));
+        });
+    
+        document.querySelectorAll('.reject-leave-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => rejectLeave(e.target.getAttribute('data-id')));
+        });
+    
+        document.querySelectorAll('.view-leave-details-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => viewLeaveDetails(e.target.getAttribute('data-id')));
+        });
+    }
         // Add event listeners for approve, reject, and view details buttons
         document.querySelectorAll('.approve-leave-btn').forEach(btn => {
             btn.addEventListener('click', (e) => approveLeave(e.target.getAttribute('data-id')));
@@ -999,18 +1081,87 @@ if (viewAllRepliesLink) {
         const dateFilter = document.getElementById('dateFilter').value;
         const statusFilter = document.getElementById('statusFilter').value;
         const departmentFilter = document.getElementById('departmentFilter').value.toLowerCase();
-
+    
         const leaveApplications = JSON.parse(localStorage.getItem('leaveApplications')) || [];
+        
+        // If no filters are applied, show all applications
+        if (!dateFilter && !statusFilter && !departmentFilter) {
+            displayFilteredLeaveApplications(leaveApplications);
+            return;
+        }
+    
         const filteredApplications = leaveApplications.filter(app => {
             const dateMatch = !dateFilter || app.startDate <= dateFilter && app.endDate >= dateFilter;
             const statusMatch = !statusFilter || app.status === statusFilter;
             const departmentMatch = !departmentFilter || app.department.toLowerCase().includes(departmentFilter);
             return dateMatch && statusMatch && departmentMatch;
         });
-
+    
         displayFilteredLeaveApplications(filteredApplications);
     });
+    function calculateLeaveInsights() {
+        const leaveApplications = JSON.parse(localStorage.getItem('leaveApplications')) || [];
+        const currentDate = new Date();
+        const currentMonth = currentDate.getMonth();
+        const currentYear = currentDate.getFullYear();
+    
+        // Group leave applications by worker for current month
+        const workerLeaves = {};
+        leaveApplications.forEach(app => {
+            const startDate = new Date(app.startDate);
+            if (startDate.getMonth() === currentMonth && 
+                startDate.getFullYear() === currentYear && 
+                app.status === 'Approved') {
+                
+                const workerName = app.workerName;
+                const leaveDays = calculateLeaveDays(app.startDate, app.endDate);
+                
+                if (!workerLeaves[workerName]) {
+                    workerLeaves[workerName] = {
+                        department: app.department,
+                        days: 0
+                    };
+                }
+                workerLeaves[workerName].days += leaveDays;
+            }
+        });
+        const sortedWorkerLeaves = Object.entries(workerLeaves)
+        .sort((a, b) => b[1].days - a[1].days);
 
+    const leaveInsightsBody = document.getElementById('leaveInsightsBody');
+    const leaveInsightsSummary = document.getElementById('leaveInsightsSummary');
+
+    leaveInsightsBody.innerHTML = '';
+    sortedWorkerLeaves.forEach(([workerName, data]) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${workerName}</td>
+            <td>${data.department}</td>
+            <td>${data.days}</td>
+        `;
+        leaveInsightsBody.appendChild(row);
+    });
+     if (sortedWorkerLeaves.length > 0) {
+        const mostLeaves = sortedWorkerLeaves[0];
+        const leastLeaves = sortedWorkerLeaves[sortedWorkerLeaves.length - 1];
+        
+        leaveInsightsSummary.innerHTML = `
+            <h3>Monthly Leave Summary</h3>
+            <p>Most Leaves: ${mostLeaves[0]} (${mostLeaves[1].days} days)</p>
+            <p>Least Leaves: ${leastLeaves[0]} (${leastLeaves[1].days} days)</p>
+        `;
+    } else {
+        leaveInsightsSummary.innerHTML = '<p>No leave applications this month.</p>';
+    }
+}
+
+function calculateLeaveDays(startDate, endDate) {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = Math.abs(end - start);
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+}
+    
     function displayFilteredLeaveApplications(applications) {
         leaveApplicationsBody.innerHTML = '';
         applications.forEach(application => {
@@ -1133,25 +1284,73 @@ if (viewAllRepliesLink) {
     function openViewCommentsModal(workerName) {
         const workerData = JSON.parse(localStorage.getItem('workerData')) || {};
         const comments = workerData[workerName]?.comments || [];
-
+    
         modalContent.innerHTML = `
             <h3>Comments for ${workerName}</h3>
-            <div id="commentsContainer"></div>
+            <div id="commentsContainer" class="all-comments-container"></div>
             <button id="closeCommentsBtn">Close</button>
         `;
-
+    
         const commentsContainer = document.getElementById('commentsContainer');
-        comments.forEach(comment => {
-            const commentElement = document.createElement('div');
-            commentElement.className = 'comment';
-            commentElement.innerHTML = `
-                <p>${comment.text}</p>
-                <small>${new Date(comment.timestamp).toLocaleString()}</small>
-                ${comment.isNew ? '<span class="new-comment-badge">New</span>' : ''}
-            `;
-            commentsContainer.appendChild(commentElement);
+        
+        if (comments.length === 0) {
+            commentsContainer.innerHTML = '<p>No comments found.</p>';
+        } else {
+            comments.forEach(comment => {
+                const commentElement = document.createElement('div');
+                commentElement.className = 'admin-comment-item';
+                
+                // Attachment handling
+                let attachmentContent = '';
+                if (comment.attachment) {
+                    attachmentContent = `
+                        <div class="comment-attachment">
+                            <div class="attachment-icon">
+                                <i class="fas fa-file"></i>
+                            </div>
+                            <div class="attachment-details">
+                                <span class="attachment-name">${comment.attachment.name}</span>
+                                <div class="attachment-actions">
+                                    <button class="btn-view-attachment" 
+                                            data-name="${comment.attachment.name}"
+                                            data-type="${comment.attachment.type}"
+                                            data-data="${comment.attachment.data}">
+                                        View
+                                    </button>
+                                    <a href="${comment.attachment.data}" 
+                                       download="${comment.attachment.name}" 
+                                       class="btn-download-attachment">
+                                        Download
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+    
+                commentElement.innerHTML = `
+                    <div class="comment-header">
+                        <small class="comment-timestamp">
+                            ${new Date(comment.timestamp).toLocaleString()}
+                        </small>
+                    </div>
+                    <p class="comment-text">${comment.text}</p>
+                    ${attachmentContent}
+                `;
+                
+                commentsContainer.appendChild(commentElement);
+            });
+        }    
+        commentsContainer.querySelectorAll('.btn-view-attachment').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const name = e.target.getAttribute('data-name');
+                const type = e.target.getAttribute('data-type');
+                const data = e.target.getAttribute('data-data');
+                
+                openAttachmentModal(name, type, data);
+            });
         });
-
+    
         modal.style.display = 'block';
 
         document.getElementById('closeCommentsBtn').addEventListener('click', () => {
@@ -1163,6 +1362,40 @@ if (viewAllRepliesLink) {
             modal.style.display = 'none';
         });
     }
+
+function openAttachmentModal(name, type, data) {
+    const modal = document.createElement('div');
+    modal.className = 'attachment-modal';
+    modal.innerHTML = `
+        <div class="attachment-modal-content">
+            <span class="close-attachment-modal">&times;</span>
+            <h3>Attachment: ${name}</h3>
+            ${type.startsWith('image/') 
+                ? `<img src="${data}" alt="${name}" class="attachment-image">` 
+                : `<p>File type: ${type}</p>`}
+            <div class="attachment-modal-actions">
+                <a href="${data}" download="${name}" class="btn-download">Download</a>
+                <button class="btn-close">Close</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    // Close modal when clicking close button or outside the modal
+    modal.querySelector('.close-attachment-modal').addEventListener('click', closeAttachmentModal);
+    modal.querySelector('.btn-close').addEventListener('click', closeAttachmentModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeAttachmentModal();
+        }
+    });
+}
+function closeAttachmentModal() {
+    const modal = document.querySelector('.attachment-modal');
+    if (modal) {
+        modal.remove();
+    }
+}
 
     // Close modal when clicking on the close button or outside the modal
     closeModal.addEventListener('click', () => {
