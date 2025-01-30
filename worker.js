@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const sidebarWorkerDepartment = document.getElementById('sidebarWorkerDepartment');
     const editProfileImageBtn = document.getElementById('editProfileImageBtn');
     const imageUpload = document.getElementById('imageUpload');
-    const harvestForm = document.getElementById('harvestForm');
+    const taskForm = document.getElementById('taskForm');
     const dynamicInputs = document.getElementById('dynamicInputs');
     const topicList = document.getElementById('topicList');
     const scoreTableBody = document.getElementById('scoreTableBody');
@@ -91,19 +91,19 @@ document.addEventListener('DOMContentLoaded', () => {
         sidebarProfileImage.alt = `${currentWorker.name}'s profile picture`;
         sidebarWorkerName.textContent = currentWorker.name;
         sidebarWorkerDepartment.textContent = currentWorker.department;
-        loadHarvestForm();
+        loadtaskForm();
         loadComments();
         updateLeaveRequestNotification();
         updateScoreboard();
         showDashboardContent();
     }
 
-    // Load harvest form
-    function loadHarvestForm() {
+    // Load task form
+    function loadtaskForm() {
         const columns = JSON.parse(localStorage.getItem('columns')) || [];
         const topics = JSON.parse(localStorage.getItem('topics')) || [];
 
-        // Load harvest inputs
+        // Load task inputs
         dynamicInputs.innerHTML = '';
         columns.forEach(column => {
             if (column.department === 'all' || column.department === currentWorker.department) {
@@ -132,18 +132,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Handle harvest submission
-    harvestForm.addEventListener('submit', (e) => {
+    // Handle task submission
+    taskForm.addEventListener('submit', (e) => {
         e.preventDefault();
 
-        const harvestData = {};
-        const formData = new FormData(harvestForm);
+        const taskData = {};
+        const formData = new FormData(taskForm);
         let hasData = false;
 
-        // Get harvest values
+        // Get task values
         for (const [name, value] of formData.entries()) {
             if (!name.includes('topic') && value !== '') {
-                harvestData[name] = parseInt(value) || 0;
+                taskData[name] = parseInt(value) || 0;
                 if (parseInt(value) > 0) hasData = true;
             }
         }
@@ -155,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (selectedTopics.length > 0) hasData = true;
 
         if (!hasData) {
-            alert('Please enter at least one harvest value or select a topic.');
+            alert('Please enter at least one task value or select a topic.');
             return;
         }
 
@@ -182,14 +182,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // Add activity record
         workerData[currentWorker.name].activities.push({
             timestamp: new Date().toISOString(),
-            harvest: harvestData,
+            task: taskData,
             topics: selectedTopics,
-            points: topicPoints + Object.values(harvestData).reduce((a, b) => a + b, 0)
+            points: topicPoints + Object.values(taskData).reduce((a, b) => a + b, 0)
         });
 
         localStorage.setItem('workerData', JSON.stringify(workerData));
-        alert('Harvest submitted successfully!');
-        harvestForm.reset();
+        alert('task submitted successfully!');
+        taskForm.reset();
         updateScoreboard();
     });
 
@@ -243,7 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function calculateTotalPoints(data, columns) {
         let totalPoints = 0;
     
-        // Calculate points from activities (includes both harvest and topic points)
+        // Calculate points from activities (includes both task and topic points)
         if (data.activities) {
             data.activities.forEach(activity => {
                 if (activity.points) {
