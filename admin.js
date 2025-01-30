@@ -46,6 +46,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Sidebar functionality
     let sidebarOpen = false; // Track sidebar state
+    let allComments = [];
+
 
     openSidebarBtn.addEventListener('click', () => {
         sidebar.classList.add('active');
@@ -147,8 +149,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 let points = 0;
                 if (worker.activities) {
                     worker.activities.forEach(activity => {
-                        if (activity.harvest && activity.harvest[columnName]) {
-                            points += parseInt(activity.harvest[columnName]) || 0;
+                        if (activity.task && activity.task[columnName]) {
+                            points += parseInt(activity.task[columnName]) || 0;
                         }
                     });
                 }
@@ -206,7 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function calculateTotalPoints(data, columns) {
         let totalPoints = 0;
     
-        // Calculate points from activities (includes both harvest and topic points)
+        
         if (data.activities) {
             data.activities.forEach(activity => {
                 if (activity.points) {
@@ -283,7 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }));
             allComments = allComments.concat(processedComments);
         });
-    
+ 
         // Sort comments by most recent
         allComments.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     
@@ -309,14 +311,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="attachment-details">
                                 <span class="attachment-name">${comment.attachment.name}</span>
                                 <div class="attachment-actions">
-                                    <button class="btn-view-attachment" 
+                                    <button class="btn-view-attachment"
                                             data-name="${comment.attachment.name}"
                                             data-type="${comment.attachment.type}"
                                             data-data="${comment.attachment.data}">
                                         View
                                     </button>
-                                    <a href="${comment.attachment.data}" 
-                                       download="${comment.attachment.name}" 
+                                    <a href="${comment.attachment.data}" download="${comment.attachment.name}"
                                        class="btn-download-attachment">
                                         Download
                                     </a>
@@ -355,15 +356,15 @@ document.addEventListener('DOMContentLoaded', () => {
             commentsContainer.appendChild(commentElement);
         });
     
-            // Add event listeners for view buttons
-            commentsContainer.querySelectorAll('.btn-reply-comment').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    const workerName = e.target.getAttribute('data-worker');
-                    const commentTimestamp = e.target.getAttribute('data-timestamp');
-                    openAdminReplyModal(workerName, commentTimestamp);
-                });
+        commentsContainer.querySelectorAll('.btn-view-attachment').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const name = e.target.getAttribute('data-name');
+                const type = e.target.getAttribute('data-type');
+                const data = e.target.getAttribute('data-data');
+                openAttachmentModal(name, type, data);
             });
-        }
+        });
+    }
     
         repliesList.appendChild(commentsContainer);
     
@@ -741,105 +742,172 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-// Update the loadTopics function
-function loadTopics() {
-    const topics = JSON.parse(localStorage.getItem('topics')) || [];
-    const departments = JSON.parse(localStorage.getItem('departments')) || [];
-    const topicsList = document.getElementById('topicsList');
-    if (!topicsList) return;
-    topicsList.innerHTML = '';
-
-    // Create input for filtering by department
-    const departmentFilter = document.createElement('div');
-    departmentFilter.className = 'department-filter';
-    departmentFilter.innerHTML = `
-        <label for="filterDepartment">Filter by Department:</label>
-        <select id="filterDepartment">
-            <option value="">All Departments</option>
-            ${departments.map(dept => `<option value="${dept}">${dept}</option>`).join('')}
-        </select>
-    `;
-    topicsList.appendChild(departmentFilter);
-    // Create a container for all topics
-    const allTopicsContainer = document.createElement('div');
-    allTopicsContainer.id = 'allTopicsContainer';
-    topicsList.appendChild(allTopicsContainer);
-
-    // Create sections for each department
-    departments.forEach(department => {
-        const departmentSection = createDepartmentSection(department);
-        if (departmentSection) {
-            topicsList.appendChild(departmentSection);
+    function loadTopics() {
+        const topics = JSON.parse(localStorage.getItem('topics')) || [];
+        const departments = JSON.parse(localStorage.getItem('departments')) || [];
+        const topicsList = document.getElementById('topicsList');
+        if (!topicsList) return;
+        
+        topicsList.innerHTML = '';
+    
+        // Create topic counts container and toggle button
+        const topicCountsContainer = document.createElement('div');
+        topicCountsContainer.id = 'topicCountsContainer';
+    
+        const toggleButton = document.createElement('button');
+        toggleButton.id = 'toggleButton';
+        toggleButton.textContent = 'Show Department-wise Counts';
+        toggleButton.addEventListener('click', () => {
+            topicCountsContainer.classList.toggle('show-department-wise');
+            toggleButton.textContent = topicCountsContainer.classList.contains('show-department-wise') 
+                ? 'Show Total Count' 
+                : 'Show Department-wise Counts';
+        });
+    
+        // Calculate and display topic counts
+        const totalTopics = topics.length;
+        const totalTopicsElement = document.createElement('h3');
+        totalTopicsElement.textContent = `Total Topics: ${totalTopics}`;
+        totalTopicsElement.classList.add('topic-count', 'total-count');
+    
+        const departmentCountsElement = document.createElement('div');
+        departmentCountsElement.classList.add('topic-count', 'department-counts');
+    
+        // Calculate department-wise topic counts
+        departments.forEach(department => {
+            const count = topics.filter(topic => topic.department === department).length;
+            const departmentElement = document.createElement('p');
+            departmentElement.textContent = `${department}: ${count}`;
+            departmentCountsElement.appendChild(departmentElement);
+        });
+    
+        // Handle topics without department or with "All Departments"
+        const generalTopics = topics.filter(topic => !topic.department || topic.department === 'all');
+        if (generalTopics.length > 0) {
+            const departmentElement = document.createElement('p');
+            departmentElement.textContent = `General Topics: ${generalTopics.length}`;
+            departmentCountsElement.appendChild(departmentElement);
         }
-    });
-    // Create a section for topics without a department
-    const noDepartmentSection = createDepartmentSection('General Topics');
-    allTopicsContainer.appendChild(noDepartmentSection);
-
-    topics.forEach(topic => {
-        const topicElement = createTopicElement(topic);
-        const departmentSection = document.getElementById(`department-${topic.department || 'general'}`);
-        if (departmentSection && departmentSection.querySelector('.topics-container')) {
-            departmentSection.querySelector('.topics-container').appendChild(topicElement);
-        }
-    });
-    // Add event listener for department filter
-    document.getElementById('filterDepartment').addEventListener('change', (e) => {
-        const selectedDepartment = e.target.value;
-        document.querySelectorAll('.department-section').forEach(section => {
-            if (!selectedDepartment || section.id === `department-${selectedDepartment}` || (selectedDepartment === 'general' && section.id === 'department-general-topics')) {
-                section.style.display = 'block';
+    
+        topicCountsContainer.appendChild(totalTopicsElement);
+        topicCountsContainer.appendChild(departmentCountsElement);
+    
+        topicsList.insertBefore(toggleButton, topicsList.firstChild);
+        topicsList.insertBefore(topicCountsContainer, toggleButton.nextSibling);
+    
+        // Department filter
+        const departmentFilter = document.createElement('div');
+        departmentFilter.className = 'department-filter';
+        departmentFilter.innerHTML = `
+            <label for="filterDepartment">Filter by Department:</label>
+            <select id="filterDepartment">
+                <option value="">All Departments</option>
+                ${departments.map(dept => `<option value="${dept}">${dept}</option>`).join('')}
+            </select>
+        `;
+        topicsList.appendChild(departmentFilter);
+    
+        // Create General Topics section
+        const generalTopicsSection = createDepartmentSection('General Topics');
+        generalTopicsSection.id = 'department-general-topics';
+    
+        // Add general topics to General Topics section
+        generalTopics.forEach(topic => {
+            const topicElement = createTopicElement(topic);
+            generalTopicsSection.querySelector('.topics-container').appendChild(topicElement);
+        });
+    
+        // Create and populate department sections
+        const departmentSections = departments.map(department => {
+            const departmentSection = createDepartmentSection(department);
+            
+            // Add department-specific topics
+            const departmentTopics = topics.filter(topic => 
+                topic.department === department && topic.department !== 'all'
+            );
+            
+            departmentTopics.forEach(topic => {
+                const topicElement = createTopicElement(topic);
+                departmentSection.querySelector('.topics-container').appendChild(topicElement);
+            });
+            
+            return departmentSection;
+        });
+    
+        // Append sections - General Topics first, then department sections
+        topicsList.appendChild(generalTopicsSection);
+        departmentSections.forEach(section => {
+            topicsList.appendChild(section);
+        });
+    
+        // Add event listeners to department headers for toggling
+        document.querySelectorAll('.department-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const departmentSection = header.closest('.department-section');
+                departmentSection.classList.toggle('collapsed');
+            });
+        });
+    
+        // Department filter event listener
+        document.getElementById('filterDepartment').addEventListener('change', (e) => {
+            const selectedDepartment = e.target.value;
+            const departmentSections = document.querySelectorAll('.department-section');
+            const generalTopicsSection = document.getElementById('department-general-topics');
+    
+            if (selectedDepartment === '') {
+                departmentSections.forEach(section => {
+                    section.style.display = 'block';
+                });
+                generalTopicsSection.style.display = 'block';
             } else {
-                section.style.display = 'none';
+                departmentSections.forEach(section => {
+                    section.style.display = 'none';
+                });
+                const selectedSection = document.getElementById(`department-${selectedDepartment}`);
+                if (selectedSection) {
+                    selectedSection.style.display = 'block';
+                }
+                generalTopicsSection.style.display = 'none';
             }
         });
-    });
-
-    // Add event listeners for department toggles
-    document.querySelectorAll('.department-header').forEach(header => {
-        header.addEventListener('click', () => {
-            header.classList.toggle('active');
-            header.nextElementSibling.classList.toggle('hidden');
-        });
-    });
-}
-function createDepartmentSection(department) {
-    const section = document.createElement('div');
-    section.className = 'department-section';
-    section.id = `department-${department.toLowerCase().replace(/\s+/g, '-')}`;
-    section.innerHTML = `
-        <div class="department-header">
-            <h3>${department}</h3>
-            <span class="toggle-icon">▼</span>
-        </div>
-        <div class="topics-container hidden"></div>
-    `;
-    return section;
-}
-function createTopicElement(topic) {
-    const topicElement = document.createElement('div');
-    topicElement.className = 'topic-item';
-    topicElement.innerHTML = `
-        <div class="topic-info">
-            <span class="topic-name">${topic.name}</span>
-            <span class="topic-points">(${topic.points} points)</span>
-        </div>
-        <div class="topic-actions">
-            <button class="edit-topic-btn" data-topic="${topic.name}">
-                <i class="fas fa-edit"></i> Edit
-            </button>
-            <button class="delete-topic-btn" data-topic="${topic.name}">
-                <i class="fas fa-trash"></i> Delete
-            </button>
-        </div>
-    `;
-
-    // Add event listeners for edit and delete buttons
-    topicElement.querySelector('.edit-topic-btn').addEventListener('click', () => openEditTopicModal(topic.name));
-    topicElement.querySelector('.delete-topic-btn').addEventListener('click', () => deleteTopic(topic.name));
-
-    return topicElement;
-}
+    }
+    
+    function createDepartmentSection(department) {
+        const section = document.createElement('div');
+        section.className = 'department-section collapsed'; // Add 'collapsed' class by default
+        section.id = `department-${department.toLowerCase().replace(/\s+/g, '-')}`;
+        section.innerHTML = `
+            <div class="department-header">
+                <h3>${department}</h3>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="topics-container"></div> 
+        `;
+        return section;
+    }
+    function createTopicElement(topic) {
+        const topicElement = document.createElement('div');
+        topicElement.className = 'topic-item';
+        topicElement.innerHTML = `
+            <div class="topic-info">
+                <span class="topic-name">${topic.name}</span>
+                <span class="topic-points">(${parseInt(topic.points)} points)</span>
+            </div>
+            <div class="topic-actions">
+                <button class="edit-topic-btn" data-topic="${topic.name}">
+                    <i class="fas fa-edit"></i> Edit
+                </button>
+                <button class="delete-topic-btn" data-topic="${topic.name}">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+            </div>
+        `;
+    
+        topicElement.querySelector('.edit-topic-btn').addEventListener('click', () => openEditTopicModal(topic.name));
+        topicElement.querySelector('.delete-topic-btn').addEventListener('click', () => deleteTopic(topic.name));
+    
+        return topicElement;
+    }
 // Update the addTopicForm event listener
 addTopicForm.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -1216,6 +1284,61 @@ function calculateLeaveDays(startDate, endDate) {
         });
     }
 
+    function calculateLeaveInsights() {
+        const leaveApplications = JSON.parse(localStorage.getItem('leaveApplications')) || [];
+        const currentDate = new Date();
+        const currentMonth = currentDate.getMonth();
+        const currentYear = currentDate.getFullYear();
+    
+        // Group leave applications by worker for current month
+        const workerLeaves = {};
+        leaveApplications.forEach(app => {
+            const startDate = new Date(app.startDate);
+            if (startDate.getMonth() === currentMonth && 
+                startDate.getFullYear() === currentYear && 
+                app.status === 'Approved') {
+                
+                const workerName = app.workerName;
+                const leaveDays = calculateLeaveDays(app.startDate, app.endDate);
+                
+                if (!workerLeaves[workerName]) {
+                    workerLeaves[workerName] = {
+                        department: app.department,
+                        days: 0
+                    };
+                }
+                workerLeaves[workerName].days += leaveDays;
+            }
+        });
+        const sortedWorkerLeaves = Object.entries(workerLeaves)
+        .sort((a, b) => b[1].days - a[1].days);
+
+    const leaveInsightsBody = document.getElementById('leaveInsightsBody');
+    const leaveInsightsSummary = document.getElementById('leaveInsightsSummary');
+
+    leaveInsightsBody.innerHTML = '';
+    sortedWorkerLeaves.forEach(([workerName, data]) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${workerName}</td>
+            <td>${data.department}</td>
+            <td>${data.days}</td>
+        `;
+        leaveInsightsBody.appendChild(row);
+    });
+     if (sortedWorkerLeaves.length > 0) {
+        const mostLeaves = sortedWorkerLeaves[0];
+        const leastLeaves = sortedWorkerLeaves[sortedWorkerLeaves.length - 1];
+        
+        leaveInsightsSummary.innerHTML = `
+            <h3>Monthly Leave Summary</h3>
+            <p>Most Leaves: ${mostLeaves[0]} (${mostLeaves[1].days} days)</p>
+            <p>Least Leaves: ${leastLeaves[0]} (${leastLeaves[1].days} days)</p>
+        `;
+    } else {
+        leaveInsightsSummary.innerHTML = '<p>No leave applications this month.</p>';
+    }
+}
     function loadColumns() {
         const columns = JSON.parse(localStorage.getItem('columns')) || [];
         const columnsList = document.getElementById('columnsList');
@@ -1311,41 +1434,14 @@ function calculateLeaveDays(startDate, endDate) {
         `;
     
         const commentsContainer = document.getElementById('commentsContainer');
-        
+    
         if (comments.length === 0) {
             commentsContainer.innerHTML = '<p>No comments found.</p>';
         } else {
             comments.forEach(comment => {
                 const commentElement = document.createElement('div');
-                commentElement.className = 'admin-comment-item';
-                
-                // Attachment handling
-                let attachmentContent = '';
-                if (comment.attachment) {
-                    attachmentContent = `
-                        <div class="comment-attachment">
-                            <div class="attachment-icon">
-                                <i class="fas fa-file"></i>
-                            </div>
-                            <div class="attachment-details">
-                                <span class="attachment-name">${comment.attachment.name}</span>
-                                <div class="attachment-actions">
-                                    <button class="btn-view-attachment" 
-                                            data-name="${comment.attachment.name}"
-                                            data-type="${comment.attachment.type}"
-                                            data-data="${comment.attachment.data}">
-                                        View
-                                    </button>
-                                    <a href="${comment.attachment.data}" 
-                                       download="${comment.attachment.name}" 
-                                       class="btn-download-attachment">
-                                        Download
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }
+                commentElement.className = `admin-comment-item ${comment.isNew ? 'unread' : ''}`;
+    
     
                 commentElement.innerHTML = `
                     <div class="comment-header">
@@ -1356,22 +1452,24 @@ function calculateLeaveDays(startDate, endDate) {
                     <p class="comment-text">${comment.text}</p>
                     ${attachmentContent}
                 `;
-                
+    
                 commentsContainer.appendChild(commentElement);
             });
-        }    
-        commentsContainer.querySelectorAll('.btn-view-attachment').forEach(button => {
-            button.addEventListener('click', (e) => {
-                const name = e.target.getAttribute('data-name');
-                const type = e.target.getAttribute('data-type');
-                const data = e.target.getAttribute('data-data');
-                
-                openAttachmentModal(name, type, data);
+    
+            // Add event listeners for view buttons
+            commentsContainer.querySelectorAll('.btn-view-attachment').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const name = e.target.getAttribute('data-name');
+                    const type = e.target.getAttribute('data-type');
+                    const data = e.target.getAttribute('data-data');
+    
+                    openAttachmentModal(name, type, data);
+                });
             });
-        });
+        }
     
         modal.style.display = 'block';
-
+    
         document.getElementById('closeCommentsBtn').addEventListener('click', () => {
             // Mark all comments as read
             workerData[workerName].comments.forEach(comment => {
@@ -1381,40 +1479,41 @@ function calculateLeaveDays(startDate, endDate) {
             modal.style.display = 'none';
         });
     }
-
-function openAttachmentModal(name, type, data) {
-    const modal = document.createElement('div');
-    modal.className = 'attachment-modal';
-    modal.innerHTML = `
-        <div class="attachment-modal-content">
-            <span class="close-attachment-modal">&times;</span>
-            <h3>Attachment: ${name}</h3>
-            ${type.startsWith('image/') 
-                ? `<img src="${data}" alt="${name}" class="attachment-image">` 
-                : `<p>File type: ${type}</p>`}
-            <div class="attachment-modal-actions">
-                <a href="${data}" download="${name}" class="btn-download">Download</a>
-                <button class="btn-close">Close</button>
+    function openAttachmentModal(name, type, data) {
+        const modal = document.createElement('div');
+        modal.className = 'attachment-modal';
+        modal.innerHTML = `
+            <div class="attachment-modal-content">
+                <span class="close-attachment-modal">&times;</span>
+                <h3>Attachment: ${name}</h3>
+                ${type.startsWith('image/')
+                    ? `<img src="${data}" alt="${name}" class="attachment-image">`
+                    : `<p>File type: ${type}</p>`}
+                <div class="attachment-modal-actions">
+                    <a href="${data}" download="${name}" class="btn-download">Download</a>
+                    <button class="btn-close">Close</button>
+                </div>
             </div>
-        </div>
-    `;
+        `;
+    
+        document.body.appendChild(modal);
 
-    document.body.appendChild(modal);
-    // Close modal when clicking close button or outside the modal
-    modal.querySelector('.close-attachment-modal').addEventListener('click', closeAttachmentModal);
-    modal.querySelector('.btn-close').addEventListener('click', closeAttachmentModal);
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            closeAttachmentModal();
-        }
-    });
-}
-function closeAttachmentModal() {
-    const modal = document.querySelector('.attachment-modal');
-    if (modal) {
-        modal.remove();
+        // Close modal when clicking close button or outside the modal
+        modal.querySelector('.close-attachment-modal').addEventListener('click', closeAttachmentModal);
+        modal.querySelector('.btn-close').addEventListener('click', closeAttachmentModal);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeAttachmentModal();
+            }
+        });
     }
-}
+    
+    function closeAttachmentModal() {
+        const modal = document.querySelector('.attachment-modal');
+        if (modal) {
+            modal.remove();
+        }
+    }
 
     // Close modal when clicking on the close button or outside the modal
     closeModal.addEventListener('click', () => {
