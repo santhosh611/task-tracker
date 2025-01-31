@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Tracker - Boost Productivity</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            height: 100%;
+            overflow: hidden;
+        }
+        .container {
+            background: linear-gradient(135deg, #e0f7fa, #b2ebf2);
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+        .content {
+            text-align: center;
+            z-index: 1;
+        }
+        h1 {
+            font-size: 3rem;
+            color: #006064;
+            margin-bottom: 0.5rem;
+        }
+        p {
+            font-size: 1.2rem;
+            color: #00838f;
+            margin-bottom: 2rem;
+        }
+        .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .btn {
+            padding: 0.8rem 1.5rem;
+            font-size: 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .btn-admin {
+            background-color: #0277bd;
+            color: white;
+        }
+        .btn-worker {
+            background-color: #00897b;
+            color: white;
+        }
+        .features {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+        }
+        .feature {
+            text-align: center;
+        }
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        .particle {
+            position: absolute;
+            background-color: rgba(0, 121, 107, 0.2);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .productivity-graph {
+            margin-top: 2rem;
+            height: 100px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 0.5rem;
+        }
+        .bar {
+            width: 20px;
+            background-color: #00acc1;
+            transition: height 0.5s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="content">
+            <h1>Task Tracker</h1>
+            <p>Boost Productivity</p>
+            <div class="buttons">
+                <button class="btn btn-admin" onclick="location.href='admin.html'">Admin Login</button>
+                <button class="btn btn-worker" onclick="location.href='worker.html'">Worker Login</button>
+            </div>
+            <div class="features">
+                <div class="feature">
+                    <div class="feature-icon">📊</div>
+                    <p>Track Progress</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">✅</div>
+                    <p>Complete Tasks</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">⏰</div>
+                    <p>Manage Time</p>
+                </div>
+            </div>
+            <div class="productivity-graph">
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Particle animation
+        function createParticles() {
+            const container = document.querySelector('.container');
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+                particle.style.width = `${Math.random() * 10 + 5}px`;
+                particle.style.height = particle.style.width;
+                particle.style.left = `${Math.random() * 100}%`;
+                particle.style.top = `${Math.random() * 100}%`;
+                container.appendChild(particle);
+
+                animateParticle(particle);
+            }
+        }
+
+        function animateParticle(particle) {
+            const animation = particle.animate(
+                [
+                    { transform: 'translate(0, 0)' },
+                    { transform: `translate(${Math.random() * 200 - 100}px, ${Math.random() * 200 - 100}px)` }
+                ],
+                {
+                    duration: Math.random() * 3000 + 2000,
+                    direction: 'alternate',
+                    iterations: Infinity,
+                    easing: 'ease-in-out'
+                }
+            );
+        }
+
+        // Productivity graph animation
+        function animateProductivityGraph() {
+            const bars = document.querySelectorAll('.bar');
+            setInterval(() => {
+                bars.forEach(bar => {
+                    bar.style.height = `${Math.random() * 80 + 20}px`;
+                });
+            }, 2000);
+        }
+
+        // Initialize animations
+        createParticles();
+        animateProductivityGraph();
+    </script>
+</body>
+</html>

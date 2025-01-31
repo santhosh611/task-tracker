@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Worker Dashboard -  task Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container" id="workerContainer">
+        <div class="login-header">
+            <h1>Worker Login</h1>
+            <div class="search-container">
+                <label for="searchWorker" class="sr-only">Search workers</label>
+                <input type="text" id="searchWorker" placeholder="Search for a worker...">
+                <i class="fas fa-search search-icon" aria-hidden="true"></i>
+            </div>
+        </div>
+        <div class="worker-profiles-container">
+            <div id="workerList" class="worker-grid">
+                <!-- Worker profiles will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <div id="loginModal" class="modal" role="dialog" aria-labelledby="loginModalTitle">
+        <div class="modal-content">
+            <button type="button" class="close" aria-label="Close">&times;</button>
+            <h2 id="loginModalTitle">Login</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="passwordInput" class="sr-only">Password</label>
+                    <input type="password" id="passwordInput" placeholder="Enter your password" required>
+                </div>
+                <button type="submit" id="loginBtn" class="btn-primary">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="dashboard" class="dashboard hidden">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="profile-image-container">
+                    <img id="sidebarProfileImage" src="" alt="" class="sidebar-profile-image">
+                    <button id="editProfileImageBtn" class="edit-profile-btn" aria-label="Edit Profile Image">
+                        <i class="fas fa-edit" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <div class="sidebar-profile-info">
+                    <h3 id="sidebarWorkerName"></h3>
+                    <p id="sidebarWorkerDepartment"></p>
+                </div>
+            </div>
+            <nav class="sidebar-nav" aria-label="Main navigation">
+                <ul>
+                    <li>
+                        <a href="#" id="dashboardLink" class="active" aria-current="page">
+                            <i class="fas fa-home" aria-hidden="true"></i> Dashboard
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" id="applyLeaveLink">
+                            <i class="fas fa-calendar-plus" aria-hidden="true"></i> Apply for Leave
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" id="leaveRequestsLink">
+                            <i class="fas fa-calendar-check" aria-hidden="true"></i> Leave Requests
+                            <span id="leaveRequestNotification" class="notification-dot hidden" aria-label="New notifications"></span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" id="commentsLink">
+                            <i class="fas fa-comments" aria-hidden="true"></i> Comments
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+        <a href="#" id="commentsLink">
+            <i class="fas fa-comments" aria-hidden="true"></i> Comments
+            <span id="leaveRequestNotification" class="notification-dot hidden"></span>
+        </a>
+        <main class="main-content">
+            <button id="sidebarToggle" class="sidebar-toggle" aria-label="Toggle sidebar menu">
+                <i class="fas fa-bars" aria-hidden="true"></i>
+                <span class="sr-only">Toggle Menu</span>
+            </button>
+
+            <div id="dashboardContent" class="content-section">
+                <div class="section-header">
+                    <h2>task Form</h2>
+                </div>
+                <form id="taskForm" class="task-form">
+                    <div id="dynamicInputs" class="form-inputs"></div>
+                    <div id="topicList" class="topic-list"></div>
+                    <button type="submit" id="submittask" class="btn-primary">Submit task</button>
+                </form>
+                <div id="scoreboardSection" class="scoreboard-section">
+                    <h3>Department Scoreboard</h3>
+                    <div class="table-responsive">
+                        <table id="scoreTable" class="scoreboard-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Rank</th>
+                                    <th scope="col">Worker</th>
+                                    <th scope="col">Points Today</th>
+                                    <th scope="col">Total Points</th>
+                                </tr>
+                            </thead>
+                            <tbody id="scoreTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="applyLeaveContent" class="content-section hidden">
+                <div class="section-header">
+                    <h2>Apply for Leave</h2>
+                </div>
+                <form id="leaveApplicationForm" class="leave-form">
+                    <div class="form-group">
+                        <label for="leaveType">Leave Type:</label>
+                        <select id="leaveType" required>
+                            <option value="">Select leave type</option>
+                            <option value="Annual Leave">Annual Leave</option>
+                            <option value="Sick Leave">Sick Leave</option>
+                            <option value="Personal Leave">Personal Leave</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="startDate">Start Date:</label>
+                            <input type="date" id="startDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="endDate">End Date:</label>
+                            <input type="date" id="endDate" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="totalDays">Total Days:</label>
+                        <input type="number" id="totalDays" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="reason">Reason for Leave:</label>
+                        <textarea id="reason" rows="4" required></textarea>
+                    </div>
+                    <button type="submit" class="btn-primary">Submit Application</button>
+                </form>
+            </div>
+
+            <div id="leaveRequestsContent" class="content-section hidden">
+                <div class="section-header">
+                    <h2>Leave Requests</h2>
+                </div>
+                <div id="leaveRequestsList" class="requests-list"></div>
+            </div>
+
+            <div id="commentsContent" class="content-section hidden">
+                <div class="section-header">
+                    <h2>Comments</h2>
+                </div>
+                <form id="addCommentForm" class="comment-form">
+                    <div class="form-group">
+                        <label for="commentText" class="sr-only">Add a comment</label>
+                        <textarea id="commentText" placeholder="Add a comment..." required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="commentAttachment">Attach File:</label>
+                        <input type="file" id="commentAttachment" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx">
+                    </div>
+                    <button type="submit" class="btn-primary">Add Comment</button>
+                </form>
+                <div id="commentList" class="comments-list"></div>
+              
+            </div>
+        </main>
+    </div>
+
+    <input type="file" id="imageUpload" accept="image/*" hidden aria-hidden="true">
+    <script src="worker.js"></script>
+</body>
+</html>
